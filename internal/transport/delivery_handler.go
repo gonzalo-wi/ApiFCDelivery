@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"GoFrioCalor/internal/constants"
 	"GoFrioCalor/internal/dto"
 	"GoFrioCalor/internal/models"
 	"GoFrioCalor/internal/service"
@@ -24,7 +25,7 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// Convertir a DTO y enviar la respuesta a Fernando o chatbot
+	// Convertir a DTO y enviar la respuesta a Jmobile o al Chatbot
 	response := dto.ToDeliveryResponseList(deliveries)
 	c.JSON(http.StatusOK, response)
 }
@@ -34,13 +35,13 @@ func (h *DeliveryHandler) GetDeliveryByID(c *gin.Context) {
 
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid delivery ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidID})
 		return
 	}
 
 	delivery, err := h.service.FindByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Delivery not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": constants.MsgDeliveryNotFound})
 		return
 	}
 	// Convertir a DTO
@@ -52,7 +53,7 @@ func (h *DeliveryHandler) CreateDelivery(c *gin.Context) {
 	var delivery models.Delivery
 
 	if err := c.ShouldBindJSON(&delivery); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput})
 		return
 	}
 
@@ -71,13 +72,13 @@ func (h *DeliveryHandler) UpdateDelivery(c *gin.Context) {
 
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid delivery ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidID})
 		return
 	}
 
 	var delivery models.Delivery
 	if err := c.ShouldBindJSON(&delivery); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput})
 		return
 	}
 
@@ -96,7 +97,7 @@ func (h *DeliveryHandler) DeleteDelivery(c *gin.Context) {
 
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid delivery ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidID})
 		return
 	}
 
@@ -105,5 +106,5 @@ func (h *DeliveryHandler) DeleteDelivery(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Delivery deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": constants.MsgDeliveryDeleted})
 }

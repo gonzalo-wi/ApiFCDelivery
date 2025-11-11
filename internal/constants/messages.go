@@ -9,4 +9,5 @@ const (
 	MsgInvalidInput            = "Entrada inválida"
 	MsgDatabaseConnectionError = "Error de conexión a la base de datos"
 	MsgDatabaseConnected       = "Conexión a la base de datos exitosa"
+	MsgInvalidID               = "Número de ID inválido"
 )
