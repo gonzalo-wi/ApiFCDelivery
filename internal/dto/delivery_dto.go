@@ -2,25 +2,32 @@ package dto
 
 import "GoFrioCalor/internal/models"
 
-// DeliveryResponse es el DTO para las respuestas de delivery (sin created_at y updated_at)
 type DeliveryResponse struct {
-	ID          int    `json:"id"`
-	NroCta      string `json:"nro_cta"`
-	NroRto      string `json:"nro_rto"`
-	NroSerie    string `json:"nro_serie"`
-	Token       string `json:"token"`
-	Estado      string `json:"estado"`
-	TipoEntrega string `json:"tipo_entrega"`
-	FechaAccion string `json:"fecha_accion"`
+	ID          int                 `json:"id"`
+	NroCta      string              `json:"nro_cta"`
+	NroRto      string              `json:"nro_rto"`
+	Dispensers  []DispenserResponse `json:"dispensers"`
+	Token       string              `json:"token"`
+	Estado      string              `json:"estado"`
+	TipoEntrega string              `json:"tipo_entrega"`
+	FechaAccion string              `json:"fecha_accion"`
 }
 
-// ToDeliveryResponse convierte un modelo Delivery a DeliveryResponse
 func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
+	dispensers := make([]DispenserResponse, len(delivery.Dispensers))
+	for i, d := range delivery.Dispensers {
+		dispensers[i] = DispenserResponse{
+			ID:       d.ID,
+			Marca:    d.Marca,
+			NroSerie: d.NroSerie,
+		}
+	}
+
 	return DeliveryResponse{
 		ID:          delivery.ID,
 		NroCta:      delivery.NroCta,
 		NroRto:      delivery.NroRto,
-		NroSerie:    delivery.NroSerie,
+		Dispensers:  dispensers,
 		Token:       delivery.Token,
 		Estado:      delivery.Estado,
 		TipoEntrega: delivery.TipoEntrega,
@@ -28,7 +35,6 @@ func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
 	}
 }
 
-// ToDeliveryResponseList convierte un slice de Delivery a DeliveryResponse
 func ToDeliveryResponseList(deliveries []models.Delivery) []DeliveryResponse {
 	responses := make([]DeliveryResponse, len(deliveries))
 	for i, delivery := range deliveries {

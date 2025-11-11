@@ -24,14 +24,14 @@ func NewDeliveryStore(db *gorm.DB) DeliveryStore {
 
 func (s *deliveryStore) FindAll() ([]models.Delivery, error) {
 	var deliveries []models.Delivery
-	if err := s.db.Find(&deliveries).Error; err != nil {
+	if err := s.db.Preload("Dispensers").Find(&deliveries).Error; err != nil {
 		return nil, err
 	}
 	return deliveries, nil
 }
 func (s *deliveryStore) FindByID(id int) (*models.Delivery, error) {
 	var delivery models.Delivery
-	if err := s.db.First(&delivery, id).Error; err != nil {
+	if err := s.db.Preload("Dispensers").First(&delivery, id).Error; err != nil {
 		return nil, err
 	}
 	return &delivery, nil
