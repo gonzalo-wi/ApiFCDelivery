@@ -12,6 +12,7 @@ import (
 type DeliveryService interface {
 	FindAll() ([]models.Delivery, error)
 	FindByID(id int) (*models.Delivery, error)
+	FindByFilters(nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
 	Create(delivery *models.Delivery) error
 	Update(delivery *models.Delivery) error
 	Delete(id int) error
@@ -29,6 +30,10 @@ func (s *deliveryService) FindAll() ([]models.Delivery, error) {
 }
 func (s *deliveryService) FindByID(id int) (*models.Delivery, error) {
 	return s.store.FindByID(id)
+}
+
+func (s *deliveryService) FindByFilters(nroCta string, fechaAccion *time.Time) ([]models.Delivery, error) {
+	return s.store.FindByFilters(nroCta, fechaAccion)
 }
 
 func (s *deliveryService) Create(delivery *models.Delivery) error {

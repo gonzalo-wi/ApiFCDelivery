@@ -3,7 +3,6 @@ package dto
 import "GoFrioCalor/internal/models"
 
 type DeliveryResponse struct {
-	ID          int                 `json:"id"`
 	NroCta      string              `json:"nro_cta"`
 	NroRto      string              `json:"nro_rto"`
 	Dispensers  []DispenserResponse `json:"dispensers"`
@@ -17,14 +16,12 @@ func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
 	dispensers := make([]DispenserResponse, len(delivery.Dispensers))
 	for i, d := range delivery.Dispensers {
 		dispensers[i] = DispenserResponse{
-			ID:       d.ID,
 			Marca:    d.Marca,
 			NroSerie: d.NroSerie,
 		}
 	}
 
 	return DeliveryResponse{
-		ID:          delivery.ID,
 		NroCta:      delivery.NroCta,
 		NroRto:      delivery.NroRto,
 		Dispensers:  dispensers,

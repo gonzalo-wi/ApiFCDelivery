@@ -25,7 +25,12 @@ func main() {
 	deliveryService := service.NewDeliveryService(deliveryStore)
 	deliveryHandler := transport.NewDeliveryHandler(deliveryService)
 
-	router := routes.SetupRouter(deliveryHandler)
+	// Inicializar WorkOrder Store, PDF Service y Handler
+	workOrderStore := store.NewWorkOrderStore(db)
+	pdfService := service.NewPDFService(workOrderStore)
+	workOrderHandler := transport.NewWorkOrderHandler(pdfService)
+
+	router := routes.SetupRouter(deliveryHandler, workOrderHandler)
 
 	log.Println("Base de datos conectada y tablas migradas correctamente")
 	log.Printf("Servidor corriendo en http://localhost:%s\n", cfg.Port)

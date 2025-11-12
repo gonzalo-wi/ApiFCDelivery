@@ -7,6 +7,7 @@ import (
 	"GoFrioCalor/internal/service"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,12 +21,34 @@ func NewDeliveryHandler(service service.DeliveryService) *DeliveryHandler {
 }
 
 func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
-	deliveries, err := h.service.FindAll()
+	// Obtener parámetros opcionales de query
+	nroCta := c.Query("nro_cta")
+	fechaStr := c.Query("fecha_accion")
+
+	var deliveries []models.Delivery
+	var err error
+
+	// Si hay filtros, usar FindByFilters, sino FindAll
+	if nroCta != "" || fechaStr != "" {
+		var fechaAccion *time.Time
+		if fechaStr != "" {
+			parsed, parseErr := time.Parse("2006-01-02", fechaStr)
+			if parseErr != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha inválida. Formato esperado: YYYY-MM-DD"})
+				return
+			}
+			fechaAccion = &parsed
+		}
+		deliveries, err = h.service.FindByFilters(nroCta, fechaAccion)
+	} else {
+		deliveries, err = h.service.FindAll()
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// Convertir a DTO y enviar la respuesta a Jmobile o al Chatbot
+
 	response := dto.ToDeliveryResponseList(deliveries)
 	c.JSON(http.StatusOK, response)
 }
