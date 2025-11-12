@@ -9,6 +9,7 @@ type WorkOrderRequest struct {
 	CreatedAt  string                      `json:"createdAt" binding:"required"`
 	Dispensers []WorkOrderDispenserRequest `json:"dispensers"`
 	TipoAccion string                      `json:"tipoAccion" binding:"required"`
+	Token      string                      `json:"token"`
 }
 
 type WorkOrderDispenserRequest struct {

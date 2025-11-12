@@ -211,25 +211,56 @@ func (s *pdfService) GenerateWorkOrderPDF(workOrder *dto.WorkOrderRequest) ([]by
 	pdf.SetFont("Arial", "", 7)
 	pdf.SetTextColor(60, 60, 60)
 	pdf.MultiCell(0, 3, constants.MsgTextAcepted, "", "J", false)
-	pdf.Ln(5)
-
-	// ===== FIRMAS =====
-	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
-	pdf.SetFont("Arial", "", 9)
-	pdf.Cell(60, 5, "")
-	pdf.Cell(60, 5, "________________________________")
-	pdf.Cell(0, 5, "________________________________")
-	pdf.Ln(5)
-
-	pdf.SetFont("Arial", "B", 9)
-	pdf.Cell(60, 5, "")
-	pdf.CellFormat(60, 5, constants.PDFSignatureClient, "", 0, "C", false, 0, "")
-	pdf.CellFormat(0, 5, constants.PDFSignatureTechnician, "", 0, "C", false, 0, "")
 	pdf.Ln(8)
 
-	pdf.SetFont("Arial", "I", 8)
-	pdf.SetTextColor(128, 128, 128)
-	pdf.MultiCell(0, 4, constants.PDFFooterImportant, "", "C", false)
+	// ===== ACEPTACIÓN DIGITAL =====
+	pdf.SetFont("Arial", "B", 11)
+	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(0, 8, constants.PDFSectionAcceptance, "", 1, "L", true, 0, "")
+	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+	pdf.Ln(3)
+
+	// Recuadro de aceptación
+	acceptanceStartY := pdf.GetY()
+	pdf.SetDrawColor(colorAccent[0], colorAccent[1], colorAccent[2])
+	pdf.SetLineWidth(0.5)
+
+	// Contenido de aceptación
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetX(17)
+	pdf.Cell(50, 6, constants.PDFLabelAccepted)
+	pdf.SetFont("Arial", "", 10)
+	pdf.SetTextColor(0, 150, 0) // Verde
+	pdf.Cell(0, 6, constants.PDFLabelAcceptedValue)
+	pdf.Ln(7)
+
+	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetX(17)
+	pdf.Cell(50, 6, constants.PDFLabelDateTime)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(0, 6, time.Now().Format("02/01/2006 15:04"))
+	pdf.Ln(7)
+
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetX(17)
+	pdf.Cell(50, 6, constants.PDFLabelToken)
+	pdf.SetFont("Arial", "", 10)
+	pdf.SetTextColor(colorAccent[0], colorAccent[1], colorAccent[2])
+	tokenDisplay := workOrder.Token
+	if tokenDisplay == "" {
+		tokenDisplay = "N/A"
+	}
+	pdf.Cell(0, 6, tokenDisplay)
+	pdf.Ln(2)
+
+	// Dibujar recuadro
+	pdf.Rect(15, acceptanceStartY, 180, 22, "D")
+	// Ubicar el texto de IMPORTANTE más cerca del recuadro
+	pdf.SetY(acceptanceStartY + 21)
+
+	pdf.Ln(0)
 
 	// Generar el PDF en memoria
 	var buf bytes.Buffer

@@ -32,9 +32,13 @@ const (
 	PDFTableItem           = "Item"
 	PDFTableBrand          = "Marca"
 	PDFTableSerialNumber   = "Numero de Serie"
-	PDFSignatureClient     = "Firma del Cliente"
-	PDFSignatureTechnician = "Firma del Tecnico"
+	PDFSectionAcceptance   = "ACEPTACION DIGITAL"
+	PDFLabelAccepted       = "Estado:"
+	PDFLabelAcceptedValue  = "ACEPTADO DIGITALMENTE"
+	PDFLabelDateTime       = "Fecha y Hora:"
+	PDFLabelToken          = "Token de Verificacion:"
 	PDFFooterImportant     = "IMPORTANTE: No realizar la devolucion del equipo sin su correspondiente comprobante, el cual es entregado en el momento por nuestro representante."
+	PDFAcceptanceNote      = "El cliente fue informado sobre los terminos y condiciones del servicio y acepto digitalmente mediante el token de verificacion."
 
 	// Task descriptions
 	TaskInstallation = "Se realizo la instalacion del Dispenser Frio Calor"
