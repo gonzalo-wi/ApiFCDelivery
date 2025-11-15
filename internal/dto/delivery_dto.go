@@ -3,13 +3,13 @@ package dto
 import "GoFrioCalor/internal/models"
 
 type DeliveryResponse struct {
-	NroCta      string              `json:"nro_cta"`
-	NroRto      string              `json:"nro_rto"`
-	Dispensers  []DispenserResponse `json:"dispensers"`
-	Token       string              `json:"token"`
-	Estado      string              `json:"estado"`
-	TipoEntrega string              `json:"tipo_entrega"`
-	FechaAccion string              `json:"fecha_accion"`
+	NroCta      string               `json:"nro_cta"`
+	NroRto      string               `json:"nro_rto"`
+	Dispensers  []DispenserResponse  `json:"dispensers"`
+	Token       string               `json:"token"`
+	Estado      models.EstadoEntrega `json:"estado"`
+	TipoEntrega models.TipoEntrega   `json:"tipo_entrega"`
+	FechaAccion string               `json:"fecha_accion"`
 }
 
 func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {

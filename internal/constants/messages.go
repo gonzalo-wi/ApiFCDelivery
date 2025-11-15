@@ -44,4 +44,14 @@ const (
 	TaskInstallation = "Se realizo la instalacion del Dispenser Frio Calor"
 	TaskRemoval      = "Se realizo el retiro del Dispenser Frio Calor"
 	TaskReplacement  = "Se realizo el recambio del Dispenser Frio Calor"
+
+	// Validation messages
+	ValidationRequired    = "%s es requerido"
+	ValidationMinLength   = "%s debe tener al menos %s caracteres"
+	ValidationMaxLength   = "%s debe tener máximo %s caracteres"
+	ValidationExactLength = "%s debe tener exactamente %s caracteres"
+	ValidationOneOf       = "%s debe ser uno de: %s"
+	ValidationNumeric     = "%s debe ser numérico"
+	ValidationGreaterThan = "%s debe ser mayor que %s"
+	ValidationInvalid     = "%s no es válido"
 )

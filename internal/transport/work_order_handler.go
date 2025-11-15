@@ -18,13 +18,18 @@ func NewWorkOrderHandler(pdfService service.PDFService) *WorkOrderHandler {
 }
 
 func (h *WorkOrderHandler) GenerateWorkOrder(c *gin.Context) {
+	ctx := c.Request.Context()
 	var request dto.WorkOrderRequest
 
 	if err := c.ShouldBindJSON(&request); err != nil {
+		if validationErrors := FormatValidationError(err); len(validationErrors) > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidData, "details": validationErrors})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidData, "details": err.Error()})
 		return
 	}
-	pdfBytes, orderNumber, err := h.pdfService.GenerateWorkOrderPDF(&request)
+	pdfBytes, orderNumber, err := h.pdfService.GenerateWorkOrderPDF(ctx, &request)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": constants.MsgPDFGenerationError, "details": err.Error()})
 		return

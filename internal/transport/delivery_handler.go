@@ -21,14 +21,11 @@ func NewDeliveryHandler(service service.DeliveryService) *DeliveryHandler {
 }
 
 func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
-	// Obtener parámetros opcionales de query
+	ctx := c.Request.Context()
 	nroCta := c.Query("nro_cta")
 	fechaStr := c.Query("fecha_accion")
-
 	var deliveries []models.Delivery
 	var err error
-
-	// Si hay filtros, usar FindByFilters, sino FindAll
 	if nroCta != "" || fechaStr != "" {
 		var fechaAccion *time.Time
 		if fechaStr != "" {
@@ -39,9 +36,9 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 			}
 			fechaAccion = &parsed
 		}
-		deliveries, err = h.service.FindByFilters(nroCta, fechaAccion)
+		deliveries, err = h.service.FindByFilters(ctx, nroCta, fechaAccion)
 	} else {
-		deliveries, err = h.service.FindAll()
+		deliveries, err = h.service.FindAll(ctx)
 	}
 
 	if err != nil {
@@ -54,6 +51,7 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 }
 
 func (h *DeliveryHandler) GetDeliveryByID(c *gin.Context) {
+	ctx := c.Request.Context()
 	idParam := c.Param("id")
 
 	id, err := strconv.Atoi(idParam)
@@ -62,35 +60,38 @@ func (h *DeliveryHandler) GetDeliveryByID(c *gin.Context) {
 		return
 	}
 
-	delivery, err := h.service.FindByID(id)
+	delivery, err := h.service.FindByID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": constants.MsgDeliveryNotFound})
 		return
 	}
-	// Convertir a DTO
 	response := dto.ToDeliveryResponse(delivery)
 	c.JSON(http.StatusOK, response)
 }
 
 func (h *DeliveryHandler) CreateDelivery(c *gin.Context) {
+	ctx := c.Request.Context()
 	var delivery models.Delivery
 
 	if err := c.ShouldBindJSON(&delivery); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput})
+		if validationErrors := FormatValidationError(err); len(validationErrors) > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput, "details": validationErrors})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput, "details": err.Error()})
 		return
 	}
 
-	if err := h.service.Create(&delivery); err != nil {
+	if err := h.service.Create(ctx, &delivery); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Convertir a DTO
 	response := dto.ToDeliveryResponse(&delivery)
 	c.JSON(http.StatusCreated, response)
 }
 
 func (h *DeliveryHandler) UpdateDelivery(c *gin.Context) {
+	ctx := c.Request.Context()
 	idParam := c.Param("id")
 
 	id, err := strconv.Atoi(idParam)
@@ -101,13 +102,17 @@ func (h *DeliveryHandler) UpdateDelivery(c *gin.Context) {
 
 	var delivery models.Delivery
 	if err := c.ShouldBindJSON(&delivery); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput})
+		if validationErrors := FormatValidationError(err); len(validationErrors) > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput, "details": validationErrors})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput, "details": err.Error()})
 		return
 	}
 
 	delivery.ID = id
 
-	if err := h.service.Update(&delivery); err != nil {
+	if err := h.service.Update(ctx, &delivery); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -116,6 +121,7 @@ func (h *DeliveryHandler) UpdateDelivery(c *gin.Context) {
 }
 
 func (h *DeliveryHandler) DeleteDelivery(c *gin.Context) {
+	ctx := c.Request.Context()
 	idParam := c.Param("id")
 
 	id, err := strconv.Atoi(idParam)
@@ -124,7 +130,7 @@ func (h *DeliveryHandler) DeleteDelivery(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(ctx, id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

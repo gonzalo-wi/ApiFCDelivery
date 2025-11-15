@@ -6,6 +6,7 @@ import (
 	"GoFrioCalor/internal/models"
 	"GoFrioCalor/internal/store"
 	"bytes"
+	"context"
 	"fmt"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 )
 
 type PDFService interface {
-	GenerateWorkOrderPDF(workOrder *dto.WorkOrderRequest) ([]byte, string, error)
+	GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.WorkOrderRequest) ([]byte, string, error)
 }
 
 type pdfService struct {
@@ -24,10 +25,10 @@ func NewPDFService(workOrderStore store.WorkOrderStore) PDFService {
 	return &pdfService{workOrderStore: workOrderStore}
 }
 
-func (s *pdfService) GenerateWorkOrderPDF(workOrder *dto.WorkOrderRequest) ([]byte, string, error) {
-	orderNumber, err := s.workOrderStore.GetNextOrderNumber()
+func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.WorkOrderRequest) ([]byte, string, error) {
+	orderNumber, err := s.workOrderStore.GetNextOrderNumber(ctx)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("failed to get next order number: %w", err)
 	}
 	woModel := &models.WorkOrder{
 		OrderNumber: orderNumber,
@@ -38,8 +39,8 @@ func (s *pdfService) GenerateWorkOrderPDF(workOrder *dto.WorkOrderRequest) ([]by
 		Localidad:   workOrder.Locality,
 		TipoAccion:  workOrder.TipoAccion,
 	}
-	if err := s.workOrderStore.Create(woModel); err != nil {
-		return nil, "", err
+	if err := s.workOrderStore.Create(ctx, woModel); err != nil {
+		return nil, "", fmt.Errorf("failed to create work order: %w", err)
 	}
 
 	pdf := gofpdf.New("P", "mm", "A4", "")

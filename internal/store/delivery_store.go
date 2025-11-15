@@ -2,18 +2,20 @@ package store
 
 import (
 	"GoFrioCalor/internal/models"
+	"context"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
 )
 
 type DeliveryStore interface {
-	FindAll() ([]models.Delivery, error)
-	FindByID(id int) (*models.Delivery, error)
-	FindByFilters(nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
-	Create(delivery *models.Delivery) error
-	Update(delivery *models.Delivery) error
-	Delete(id int) error
+	FindAll(ctx context.Context) ([]models.Delivery, error)
+	FindByID(ctx context.Context, id int) (*models.Delivery, error)
+	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
+	Create(ctx context.Context, delivery *models.Delivery) error
+	Update(ctx context.Context, delivery *models.Delivery) error
+	Delete(ctx context.Context, id int) error
 }
 
 type deliveryStore struct {
@@ -24,24 +26,24 @@ func NewDeliveryStore(db *gorm.DB) DeliveryStore {
 	return &deliveryStore{db: db}
 }
 
-func (s *deliveryStore) FindAll() ([]models.Delivery, error) {
+func (s *deliveryStore) FindAll(ctx context.Context) ([]models.Delivery, error) {
 	var deliveries []models.Delivery
-	if err := s.db.Preload("Dispensers").Find(&deliveries).Error; err != nil {
-		return nil, err
+	if err := s.db.WithContext(ctx).Preload("Dispensers").Find(&deliveries).Error; err != nil {
+		return nil, fmt.Errorf("failed to find all deliveries: %w", err)
 	}
 	return deliveries, nil
 }
-func (s *deliveryStore) FindByID(id int) (*models.Delivery, error) {
+func (s *deliveryStore) FindByID(ctx context.Context, id int) (*models.Delivery, error) {
 	var delivery models.Delivery
-	if err := s.db.Preload("Dispensers").First(&delivery, id).Error; err != nil {
-		return nil, err
+	if err := s.db.WithContext(ctx).Preload("Dispensers").First(&delivery, id).Error; err != nil {
+		return nil, fmt.Errorf("failed to find delivery with id %d: %w", id, err)
 	}
 	return &delivery, nil
 }
 
-func (s *deliveryStore) FindByFilters(nroCta string, fechaAccion *time.Time) ([]models.Delivery, error) {
+func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error) {
 	var deliveries []models.Delivery
-	query := s.db.Preload("Dispensers")
+	query := s.db.WithContext(ctx).Preload("Dispensers")
 
 	// Aplicar filtros solo si se proporcionan
 	if nroCta != "" {
@@ -55,17 +57,28 @@ func (s *deliveryStore) FindByFilters(nroCta string, fechaAccion *time.Time) ([]
 	}
 
 	if err := query.Find(&deliveries).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find deliveries with filters: %w", err)
 	}
 	return deliveries, nil
 }
 
-func (s *deliveryStore) Create(delivery *models.Delivery) error {
-	return s.db.Create(delivery).Error
+func (s *deliveryStore) Create(ctx context.Context, delivery *models.Delivery) error {
+	if err := s.db.WithContext(ctx).Create(delivery).Error; err != nil {
+		return fmt.Errorf("failed to create delivery: %w", err)
+	}
+	return nil
 }
-func (s *deliveryStore) Update(delivery *models.Delivery) error {
-	return s.db.Save(delivery).Error
+
+func (s *deliveryStore) Update(ctx context.Context, delivery *models.Delivery) error {
+	if err := s.db.WithContext(ctx).Save(delivery).Error; err != nil {
+		return fmt.Errorf("failed to update delivery: %w", err)
+	}
+	return nil
 }
-func (s *deliveryStore) Delete(id int) error {
-	return s.db.Delete(&models.Delivery{}, id).Error
+
+func (s *deliveryStore) Delete(ctx context.Context, id int) error {
+	if err := s.db.WithContext(ctx).Delete(&models.Delivery{}, id).Error; err != nil {
+		return fmt.Errorf("failed to delete delivery with id %d: %w", id, err)
+	}
+	return nil
 }
