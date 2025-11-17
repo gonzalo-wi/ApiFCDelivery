@@ -14,7 +14,7 @@ const (
 	MsgInvalidData             = "Datos inválidos"
 	MsgTextAcepted             = "Declaro haber leído y aceptado integramente el Contrato de Alquiler de Equipo Frío Calor (el \"Contrato\") que se encuentra disponible en el siguiente link: www.somoselagua.com.ar/tycfriocalor y que ha sido protocolizado por el escribano Juan Franciso Iribarren , titular del Registro Notarial No 60 de La Matanza mediante escritura No 17 Folio 52 de fecha 12 de Febrero de 2021, conforme he comprobado en el siguiente link: www.somoselagua.com.ar/certfriocalor. Con arreglo a lo previsto en el Art. 4 de la ley 24.240, acepto que los términos y condiciones del Contrato y de uso del Equipo me sean suministrados por el medio antes descripto, en reemplazo del soporte físico. Usted tiene derecho a revocar la aceptación de este contrato dentro de los diez días computados a partir de la fecha de la presente Orden de Trabajo."
 
-	// PDF Texts
+	// Textos del PDF Orden de Trabajo
 	PDFHeaderTitle         = "SERVICIO TECNICO"
 	PDFOrderTitle          = "ORDEN DE TRABAJO"
 	PDFSectionService      = "INFORMACION DEL SERVICIO"
@@ -40,12 +40,12 @@ const (
 	PDFFooterImportant     = "IMPORTANTE: No realizar la devolucion del equipo sin su correspondiente comprobante, el cual es entregado en el momento por nuestro representante."
 	PDFAcceptanceNote      = "El cliente fue informado sobre los terminos y condiciones del servicio y acepto digitalmente mediante el token de verificacion."
 
-	// Task descriptions
+	// Descripciones de tareas
 	TaskInstallation = "Se realizo la instalacion del Dispenser Frio Calor"
 	TaskRemoval      = "Se realizo el retiro del Dispenser Frio Calor"
 	TaskReplacement  = "Se realizo el recambio del Dispenser Frio Calor"
 
-	// Validation messages
+	// Mensajes de validación
 	ValidationRequired    = "%s es requerido"
 	ValidationMinLength   = "%s debe tener al menos %s caracteres"
 	ValidationMaxLength   = "%s debe tener máximo %s caracteres"
@@ -54,4 +54,20 @@ const (
 	ValidationNumeric     = "%s debe ser numérico"
 	ValidationGreaterThan = "%s debe ser mayor que %s"
 	ValidationInvalid     = "%s no es válido"
+
+	// Store error messages
+	ErrFindAllDeliveries        = "error al buscar todas las entregas: %w"
+	ErrFindDeliveryByID         = "error al buscar entrega con id %d: %w"
+	ErrFindDeliveriesFilters    = "error al buscar entregas con filtros: %w"
+	ErrCreateDelivery           = "error al crear entrega: %w"
+	ErrUpdateDelivery           = "error al actualizar entrega: %w"
+	ErrDeleteDelivery           = "error al eliminar entrega con id %d: %w"
+	ErrFindAllDispensers        = "error al buscar todos los dispensers: %w"
+	ErrFindDispenserByID        = "error al buscar dispenser con id %d: %w"
+	ErrFindDispensersByDelivery = "error al buscar dispensers de la entrega %d: %w"
+	ErrCreateDispenser          = "error al crear dispenser: %w"
+	ErrUpdateDispenser          = "error al actualizar dispenser: %w"
+	ErrDeleteDispenser          = "error al eliminar dispenser con id %d: %w"
+	ErrCreateWorkOrder          = "error al crear orden de trabajo: %w"
+	ErrCountWorkOrders          = "error al contar órdenes de trabajo: %w"
 )

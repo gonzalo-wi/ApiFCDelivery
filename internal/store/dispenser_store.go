@@ -1,6 +1,7 @@
 package store
 
 import (
+	"GoFrioCalor/internal/constants"
 	"GoFrioCalor/internal/models"
 	"context"
 	"fmt"
@@ -28,7 +29,7 @@ func NewDispenserStore(db *gorm.DB) DispenserStore {
 func (s *dispenserStore) FindAll(ctx context.Context) ([]models.Dispenser, error) {
 	var dispensers []models.Dispenser
 	if err := s.db.WithContext(ctx).Find(&dispensers).Error; err != nil {
-		return nil, fmt.Errorf("failed to find all dispensers: %w", err)
+		return nil, fmt.Errorf(constants.ErrFindAllDispensers, err)
 	}
 	return dispensers, nil
 }
@@ -36,7 +37,7 @@ func (s *dispenserStore) FindAll(ctx context.Context) ([]models.Dispenser, error
 func (s *dispenserStore) FindByID(ctx context.Context, id int) (*models.Dispenser, error) {
 	var dispenser models.Dispenser
 	if err := s.db.WithContext(ctx).First(&dispenser, id).Error; err != nil {
-		return nil, fmt.Errorf("failed to find dispenser with id %d: %w", id, err)
+		return nil, fmt.Errorf(constants.ErrFindDispenserByID, id, err)
 	}
 	return &dispenser, nil
 }
@@ -44,28 +45,28 @@ func (s *dispenserStore) FindByID(ctx context.Context, id int) (*models.Dispense
 func (s *dispenserStore) FindByDeliveryID(ctx context.Context, deliveryID int) ([]models.Dispenser, error) {
 	var dispensers []models.Dispenser
 	if err := s.db.WithContext(ctx).Where("delivery_id = ?", deliveryID).Find(&dispensers).Error; err != nil {
-		return nil, fmt.Errorf("failed to find dispensers for delivery %d: %w", deliveryID, err)
+		return nil, fmt.Errorf(constants.ErrFindDispensersByDelivery, deliveryID, err)
 	}
 	return dispensers, nil
 }
 
 func (s *dispenserStore) Create(ctx context.Context, dispenser *models.Dispenser) error {
 	if err := s.db.WithContext(ctx).Create(dispenser).Error; err != nil {
-		return fmt.Errorf("failed to create dispenser: %w", err)
+		return fmt.Errorf(constants.ErrCreateDispenser, err)
 	}
 	return nil
 }
 
 func (s *dispenserStore) Update(ctx context.Context, dispenser *models.Dispenser) error {
 	if err := s.db.WithContext(ctx).Save(dispenser).Error; err != nil {
-		return fmt.Errorf("failed to update dispenser: %w", err)
+		return fmt.Errorf(constants.ErrUpdateDispenser, err)
 	}
 	return nil
 }
 
 func (s *dispenserStore) Delete(ctx context.Context, id int) error {
 	if err := s.db.WithContext(ctx).Delete(&models.Dispenser{}, id).Error; err != nil {
-		return fmt.Errorf("failed to delete dispenser with id %d: %w", id, err)
+		return fmt.Errorf(constants.ErrDeleteDispenser, id, err)
 	}
 	return nil
 }

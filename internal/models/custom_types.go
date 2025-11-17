@@ -25,12 +25,10 @@ func (cd CustomDate) MarshalJSON() ([]byte, error) {
 	return json.Marshal(cd.Time)
 }
 
-// Value implementa driver.Valuer para guardar en la base de datos
 func (cd CustomDate) Value() (driver.Value, error) {
 	return cd.Time, nil
 }
 
-// Scan implementa sql.Scanner para leer desde la base de datos
 func (cd *CustomDate) Scan(value interface{}) error {
 	if value == nil {
 		cd.Time = time.Time{}
