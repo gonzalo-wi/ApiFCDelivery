@@ -39,6 +39,7 @@ func (s *deliveryService) FindByFilters(ctx context.Context, nroCta string, fech
 	return s.store.FindByFilters(ctx, nroCta, fechaAccion)
 }
 
+// Al momento de crear la entrega se genera el token para el cliente
 func (s *deliveryService) Create(ctx context.Context, delivery *models.Delivery) error {
 	delivery.Token = s.generateToken()
 	if delivery.FechaAccion.IsZero() {
@@ -55,6 +56,7 @@ func (s *deliveryService) Delete(ctx context.Context, id int) error {
 	return s.store.Delete(ctx, id)
 }
 
+// generar token de 4 digitos
 func (s *deliveryService) generateToken() string {
 	rangeSize := int64(constants.TOKEN_MAX - constants.TOKEN_MIN + 1)
 	n, err := rand.Int(rand.Reader, big.NewInt(rangeSize))

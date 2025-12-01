@@ -7,6 +7,7 @@ type DeliveryResponse struct {
 	NroCta      string               `json:"nro_cta"`
 	NroRto      string               `json:"nro_rto"`
 	Dispensers  []DispenserResponse  `json:"dispensers"`
+	Cantidad    uint                 `json:"cantidad"`
 	Token       string               `json:"token"`
 	Estado      models.EstadoEntrega `json:"estado"`
 	TipoEntrega models.TipoEntrega   `json:"tipo_entrega"`
@@ -29,6 +30,7 @@ func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
 		NroCta:      delivery.NroCta,
 		NroRto:      delivery.NroRto,
 		Dispensers:  dispensers,
+		Cantidad:    delivery.Cantidad,
 		Token:       delivery.Token,
 		Estado:      delivery.Estado,
 		TipoEntrega: delivery.TipoEntrega,

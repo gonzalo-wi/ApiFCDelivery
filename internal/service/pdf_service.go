@@ -47,13 +47,10 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.AddPage()
 	pdf.SetMargins(15, 15, 15)
 
-	// Colores
-	colorPrimary := []int{41, 128, 185} // Azul
-	colorText := []int{52, 73, 94}      // Gris oscuro
-	colorAccent := []int{52, 152, 219}  // Azul claro
+	colorPrimary := []int{41, 128, 185}
+	colorText := []int{52, 73, 94}
+	colorAccent := []int{52, 152, 219}
 
-	// ===== ENCABEZADO =====
-	// Fondo blanco con borde inferior azul
 	pdf.SetFillColor(255, 255, 255)
 	pdf.Rect(0, 0, 210, 50, "F")
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
@@ -89,7 +86,6 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.SetFont("Arial", "", 10)
 	leftCol := 95.0
 
-	// Fila 1
 	pdf.SetFont("Arial", "B", 10)
 	pdf.Cell(45, 7, constants.PDFLabelDate)
 	pdf.SetFont("Arial", "", 10)
@@ -100,7 +96,6 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.Cell(0, 7, workOrder.TipoAccion)
 	pdf.Ln(7)
 
-	// Fila 2
 	pdf.SetFont("Arial", "B", 10)
 	pdf.Cell(45, 7, constants.PDFLabelAccountNumber)
 	pdf.SetFont("Arial", "", 10)
@@ -111,7 +106,6 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.Cell(0, 7, workOrder.NroRto)
 	pdf.Ln(10)
 
-	// ===== DATOS DEL CLIENTE =====
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetTextColor(255, 255, 255)
@@ -190,17 +184,15 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 
 	pdf.SetFont("Arial", "", 9)
 	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
-	pdf.SetX(17) // Margen izquierdo dentro del recuadro
+	pdf.SetX(17)
 	pdf.MultiCell(176, 5, tareaTexto, "", "L", false)
 
-	// Dibujar el recuadro con borde azul
 	pdf.SetDrawColor(colorAccent[0], colorAccent[1], colorAccent[2])
 	pdf.SetLineWidth(0.3)
 	pdf.Rect(15, rectStartY, 180, 35, "D")
 	pdf.SetY(rectStartY + 35)
 	pdf.Ln(2)
 
-	// ===== TÉRMINOS Y CONDICIONES =====
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetTextColor(255, 255, 255)
@@ -208,13 +200,11 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
 	pdf.Ln(2)
 
-	// Texto legal
 	pdf.SetFont("Arial", "", 7)
 	pdf.SetTextColor(60, 60, 60)
 	pdf.MultiCell(0, 3, constants.MsgTextAcepted, "", "J", false)
 	pdf.Ln(8)
 
-	// ===== ACEPTACIÓN DIGITAL =====
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetTextColor(255, 255, 255)
@@ -222,17 +212,15 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
 	pdf.Ln(3)
 
-	// Recuadro de aceptación
 	acceptanceStartY := pdf.GetY()
 	pdf.SetDrawColor(colorAccent[0], colorAccent[1], colorAccent[2])
 	pdf.SetLineWidth(0.5)
 
-	// Contenido de aceptación
 	pdf.SetFont("Arial", "B", 10)
 	pdf.SetX(17)
 	pdf.Cell(50, 6, constants.PDFLabelAccepted)
 	pdf.SetFont("Arial", "", 10)
-	pdf.SetTextColor(0, 150, 0) // Verde
+	pdf.SetTextColor(0, 150, 0)
 	pdf.Cell(0, 6, constants.PDFLabelAcceptedValue)
 	pdf.Ln(7)
 

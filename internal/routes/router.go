@@ -2,6 +2,7 @@ package routes
 
 import (
 	"GoFrioCalor/config"
+	"GoFrioCalor/internal/middleware"
 	"GoFrioCalor/internal/transport"
 	"time"
 
@@ -11,7 +12,13 @@ import (
 
 func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *transport.DispenserHandler,
 	workOrderHandler *transport.WorkOrderHandler, cfg *config.Config) *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
+
+	// Middleware de recovery (panic handling)
+	router.Use(gin.Recovery())
+
+	// Middleware de logging con zerolog
+	router.Use(middleware.Logger())
 
 	// Configuración de CORS
 	router.Use(cors.New(cors.Config{

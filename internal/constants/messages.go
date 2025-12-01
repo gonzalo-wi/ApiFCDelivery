@@ -15,7 +15,15 @@ const (
 	MsgInvalidID               = "Número de ID inválido"
 	MsgPDFGenerationError      = "Error generando PDF"
 	MsgInvalidData             = "Datos inválidos"
-	MsgTextAcepted             = "Declaro haber leído y aceptado integramente el Contrato de Alquiler de Equipo Frío Calor (el \"Contrato\") que se encuentra disponible en el siguiente link: www.somoselagua.com.ar/tycfriocalor y que ha sido protocolizado por el escribano Juan Franciso Iribarren , titular del Registro Notarial No 60 de La Matanza mediante escritura No 17 Folio 52 de fecha 12 de Febrero de 2021, conforme he comprobado en el siguiente link: www.somoselagua.com.ar/certfriocalor. Con arreglo a lo previsto en el Art. 4 de la ley 24.240, acepto que los términos y condiciones del Contrato y de uso del Equipo me sean suministrados por el medio antes descripto, en reemplazo del soporte físico. Usted tiene derecho a revocar la aceptación de este contrato dentro de los diez días computados a partir de la fecha de la presente Orden de Trabajo."
+
+	// Mensajes de sistema
+	MsgErrorLoadingConfig  = "Error cargando configuración"
+	MsgErrorConnectingDB   = "Error conectando a la base de datos"
+	MsgDBConnectedSuccess  = "Base de datos conectada y tablas migradas correctamente"
+	MsgServerRunning       = "Servidor corriendo en http://localhost:%s"
+	MsgErrorStartingServer = "Error iniciando el servidor"
+
+	MsgTextAcepted = "Declaro haber leído y aceptado integramente el Contrato de Alquiler de Equipo Frío Calor (el \"Contrato\") que se encuentra disponible en el siguiente link: www.somoselagua.com.ar/tycfriocalor y que ha sido protocolizado por el escribano Juan Franciso Iribarren , titular del Registro Notarial No 60 de La Matanza mediante escritura No 17 Folio 52 de fecha 12 de Febrero de 2021, conforme he comprobado en el siguiente link: www.somoselagua.com.ar/certfriocalor. Con arreglo a lo previsto en el Art. 4 de la ley 24.240, acepto que los términos y condiciones del Contrato y de uso del Equipo me sean suministrados por el medio antes descripto, en reemplazo del soporte físico. Usted tiene derecho a revocar la aceptación de este contrato dentro de los diez días computados a partir de la fecha de la presente Orden de Trabajo."
 
 	// Textos del PDF Orden de Trabajo
 	PDFHeaderTitle         = "SERVICIO TECNICO"

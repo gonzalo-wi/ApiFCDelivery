@@ -15,6 +15,7 @@ type Config struct {
 	DBName      string
 	Port        string
 	CORSOrigins string
+	Environment string
 }
 
 func LoadConfig() (*Config, error) {
@@ -30,6 +31,7 @@ func LoadConfig() (*Config, error) {
 		DBName:      os.Getenv("DB_NAME"),
 		Port:        os.Getenv("PORT"),
 		CORSOrigins: os.Getenv("CORS_ORIGINS"),
+		Environment: getEnvOrDefault("ENVIRONMENT", "development"),
 	}
 
 	return config, nil
@@ -45,13 +47,10 @@ func (c *Config) GetDSN() string {
 	)
 }
 
-// GetCORSOrigins devuelve los orígenes permitidos para CORS como slice
-// Si no está configurado, retorna localhost:5173 por defecto para desarrollo
 func (c *Config) GetCORSOrigins() []string {
 	if c.CORSOrigins == "" {
 		return []string{"http://localhost:5173"}
 	}
-	// Separar por comas para múltiples orígenes
 	origins := []string{}
 	for i := 0; i < len(c.CORSOrigins); i++ {
 		start := i
@@ -59,7 +58,6 @@ func (c *Config) GetCORSOrigins() []string {
 			i++
 		}
 		origin := c.CORSOrigins[start:i]
-		// Eliminar espacios
 		for len(origin) > 0 && (origin[0] == ' ' || origin[0] == '\t') {
 			origin = origin[1:]
 		}
@@ -71,4 +69,12 @@ func (c *Config) GetCORSOrigins() []string {
 		}
 	}
 	return origins
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }
