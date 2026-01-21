@@ -137,3 +137,53 @@ func (h *DeliveryHandler) DeleteDelivery(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": constants.MsgDeliveryDeleted})
 }
+
+func (h *DeliveryHandler) GetDeliveriesByRto(c *gin.Context) {
+	ctx := c.Request.Context()
+	nroRto := c.Query("nro_rto")
+	fechaStr := c.Query("fecha_accion")
+
+	var fechaAccion *time.Time
+	if fechaStr != "" {
+		parsed, parseErr := time.Parse("2006-01-02", fechaStr)
+		if parseErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha inválida. Formato esperado: YYYY-MM-DD"})
+			return
+		}
+		fechaAccion = &parsed
+	}
+
+	deliveries, err := h.service.FindByRto(ctx, nroRto, fechaAccion)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := dto.ToDeliveryResponseList(deliveries)
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *DeliveryHandler) GetDeliveriesByNroCta(c *gin.Context) {
+	ctx := c.Request.Context()
+	nroCta := c.Query("nro_cta")
+	fechaStr := c.Query("fecha_accion")
+
+	var fechaAccion *time.Time
+	if fechaStr != "" {
+		parsed, parseErr := time.Parse("2006-01-02", fechaStr)
+		if parseErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha inválida. Formato esperado: YYYY-MM-DD"})
+			return
+		}
+		fechaAccion = &parsed
+	}
+
+	deliveries, err := h.service.FindByFilters(ctx, nroCta, fechaAccion)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := dto.ToDeliveryResponseList(deliveries)
+	c.JSON(http.StatusOK, response)
+}

@@ -14,7 +14,6 @@ const (
 	MsgDatabaseConnected       = "Conexión a la base de datos exitosa"
 	MsgInvalidID               = "Número de ID inválido"
 	MsgPDFGenerationError      = "Error generando PDF"
-	MsgInvalidData             = "Datos inválidos"
 
 	// Mensajes de sistema
 	MsgErrorLoadingConfig  = "Error cargando configuración"
@@ -70,6 +69,7 @@ const (
 	ErrFindAllDeliveries        = "error al buscar todas las entregas: %w"
 	ErrFindDeliveryByID         = "error al buscar entrega con id %d: %w"
 	ErrFindDeliveriesFilters    = "error al buscar entregas con filtros: %w"
+	ErrFindDeliveriesByRto      = "error al buscar entregas por RTO: %w"
 	ErrCreateDelivery           = "error al crear entrega: %w"
 	ErrUpdateDelivery           = "error al actualizar entrega: %w"
 	ErrDeleteDelivery           = "error al eliminar entrega con id %d: %w"
@@ -81,4 +81,83 @@ const (
 	ErrDeleteDispenser          = "error al eliminar dispenser con id %d: %w"
 	ErrCreateWorkOrder          = "error al crear orden de trabajo: %w"
 	ErrCountWorkOrders          = "error al contar órdenes de trabajo: %w"
+
+	// Terms Session Messages
+	MsgTermsAlreadyAccepted = "Términos ya fueron aceptados previamente"
+	MsgTermsAcceptedSuccess = "Términos aceptados exitosamente"
+	MsgTermsAlreadyRejected = "Términos ya fueron rechazados previamente"
+	MsgTermsRejected        = "Términos rechazados"
+	MsgSessionExpired       = "el token ha expirado"
+	MsgSessionNotAvailable  = "el token no está disponible para esta acción (estado: %s)"
+
+	// Terms Session Errors
+	ErrVerifyingExistingSession = "error verificando sesión existente: %w"
+	ErrGeneratingToken          = "error generando token: %w"
+	ErrCreatingSession          = "error creando sesión: %w"
+	ErrUpdatingSession          = "error actualizando sesión: %w"
+
+	// Terms Session Logs
+	LogSessionFoundReusing       = "Sesión existente encontrada, reutilizando token"
+	LogSessionCreated            = "Sesión de términos creada exitosamente"
+	LogSessionMarkedExpired      = "Error marcando sesión como expirada"
+	LogSessionAlreadyAccepted    = "Sesión ya estaba aceptada, respuesta idempotente"
+	LogTermsAccepted             = "Términos aceptados, iniciando notificación a Infobip"
+	LogSessionAlreadyRejected    = "Sesión ya estaba rechazada, respuesta idempotente"
+	LogTermsRejected             = "Términos rechazados, iniciando notificación a Infobip"
+	LogRetryingInfobip           = "Reintentando notificación a Infobip"
+	LogErrorUpdatingNotifyStatus = "Error actualizando estado de notificación exitosa"
+	LogInfobipSuccess            = "Notificación a Infobip exitosa"
+	LogInfobipFailed             = "Fallo en notificación a Infobip"
+	LogInfobipFailedAll          = "Notificación a Infobip falló después de todos los reintentos"
+	LogErrorUpdatingNotifyFailed = "Error actualizando estado de notificación fallida"
+
+	// Terms Session Events
+	EventTermsAccepted = "TERMS_ACCEPTED"
+	EventTermsRejected = "TERMS_REJECTED"
+
+	// Delivery with Terms Messages
+	MsgInvalidData               = "Datos inv\u00e1lidos"
+	MsgValidationFailed          = "Validaci\u00f3n fallida"
+	MsgAtLeastOneDispenser       = "Debe incluir al menos un dispenser"
+	MsgDispenserQuantityMismatch = "La cantidad de dispensers no coincide con el campo 'cantidad'"
+	MsgServerError               = "Error del servidor"
+	MsgCouldNotInitiateDelivery  = "No se pudo iniciar la entrega"
+	MsgDeliveryInitiatedSuccess  = "Entrega iniciada exitosamente"
+	MsgParameterMissing          = "Par\u00e1metro faltante"
+
+	MsgCouldNotCompleteDelivery  = "No se pudo completar la entrega"
+	MsgDeliveryCompletedSuccess  = "Entrega completada exitosamente"
+	MsgDeliveryCreatedAfterTerms = "Entrega creada exitosamente despu\u00e9s de aceptar t\u00e9rminos"
+	MsgUseTermsStatusEndpoint    = "Use el endpoint /api/v1/terms/status/:token para verificar el estado de los t\u00e9rminos"
+
+	// Delivery with Terms Errors
+	ErrTermsSessionNotFound     = "sesi\u00f3n de t\u00e9rminos no encontrada"
+	ErrTermsNotAcceptedPending  = "los t\u00e9rminos no han sido aceptados (estado: PENDING)"
+	ErrTermsNotAcceptedRejected = "los t\u00e9rminos no han sido aceptados (estado: REJECTED)"
+	ErrTermsSessionExpired      = "la sesi\u00f3n de t\u00e9rminos ha expirado"
+
+	// Delivery with Terms Logs
+	LogValidationFailedInitiate = "Validaci\u00f3n fall\u00f3 en InitiateDelivery"
+	LogErrorInitiatingDelivery  = "Error iniciando entrega"
+	LogErrorCompletingDelivery  = "Error completando entrega"
+
+	// Terms Session Handler Messages
+	MsgInvalidRequest            = "Solicitud inv\u00e1lida"
+	MsgErrorCreatingTermsSession = "Error creando sesi\u00f3n de t\u00e9rminos"
+	MsgTokenRequired             = "Token requerido"
+	MsgSessionIDRequired         = "SessionID requerido"
+	MsgSessionNotFound           = "Sesi\u00f3n no encontrada"
+	MsgAcceptingTerms            = "Aceptando t\u00e9rminos y condiciones"
+	MsgRejectingTerms            = "Rechazando t\u00e9rminos y condiciones"
+
+	// Terms Session Handler Logs
+	LogErrorValidatingInfobip  = "Error validando request de Infobip"
+	LogCreatingTermsSession    = "Creando sesi\u00f3n de t\u00e9rminos para Infobip"
+	LogErrorCreatingSession    = "Error creando sesi\u00f3n de t\u00e9rminos"
+	LogQueryingTermsStatus     = "Consultando estado de t\u00e9rminos"
+	LogErrorGettingTermsStatus = "Error obteniendo estado de t\u00e9rminos"
+	LogQueryingBySessionID     = "Consultando sesi\u00f3n por sessionID"
+	LogErrorGettingBySessionID = "Error obteniendo sesi\u00f3n por sessionID"
+	LogErrorAcceptingTerms     = "Error aceptando t\u00e9rminos"
+	LogErrorRejectingTerms     = "Error rechazando t\u00e9rminos"
 )

@@ -25,7 +25,7 @@ func NewDatabase(dsn string) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(constants.MAX_OPEN_CONNS)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	if err := db.AutoMigrate(&models.Delivery{}, &models.Dispenser{}, &models.WorkOrder{}); err != nil {
+	if err := db.AutoMigrate(&models.Delivery{}, &models.Dispenser{}, &models.WorkOrder{}, &models.TermsSession{}); err != nil {
 		log.Println(constants.MsgInternalServerError, err)
 		return nil, err
 	}

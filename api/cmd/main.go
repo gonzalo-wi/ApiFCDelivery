@@ -39,7 +39,17 @@ func main() {
 	pdfService := service.NewPDFService(workOrderStore)
 	workOrderHandler := transport.NewWorkOrderHandler(pdfService)
 
-	router := routes.SetupRouter(deliveryHandler, dispenserHandler, workOrderHandler, cfg)
+	// Términos y Condiciones con Infobip
+	termsSessionStore := store.NewTermsSessionStore(db)
+	infobipClient := service.NewInfobipClient(cfg.InfobipBaseURL, cfg.InfobipAPIKey)
+	termsSessionService := service.NewTermsSessionService(termsSessionStore, infobipClient)
+	termsSessionHandler := transport.NewTermsSessionHandler(termsSessionService, cfg.AppBaseURL, cfg.TermsTTLHours)
+
+	// Flujo integrado: Entregas con Términos y Condiciones
+	deliveryWithTermsService := service.NewDeliveryWithTermsService(deliveryStore, termsSessionStore, termsSessionService)
+	deliveryWithTermsHandler := transport.NewDeliveryWithTermsHandler(deliveryWithTermsService, cfg.AppBaseURL, cfg.TermsTTLHours)
+
+	router := routes.SetupRouter(deliveryHandler, dispenserHandler, workOrderHandler, termsSessionHandler, deliveryWithTermsHandler, cfg)
 
 	log.Info().Str("port", cfg.Port).Msgf(constants.MsgServerRunning, cfg.Port)
 

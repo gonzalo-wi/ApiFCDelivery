@@ -14,6 +14,7 @@ type DeliveryStore interface {
 	FindAll(ctx context.Context) ([]models.Delivery, error)
 	FindByID(ctx context.Context, id int) (*models.Delivery, error)
 	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
+	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
 	Create(ctx context.Context, delivery *models.Delivery) error
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
@@ -56,6 +57,22 @@ func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaA
 
 	if err := query.Find(&deliveries).Error; err != nil {
 		return nil, fmt.Errorf(constants.ErrFindDeliveriesFilters, err)
+	}
+	return deliveries, nil
+}
+func (s *deliveryStore) FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error) {
+	var deliveries []models.Delivery
+	query := s.db.WithContext(ctx).Preload("Dispensers")
+	if nroRto != "" {
+		query = query.Where("nro_rto = ?", nroRto)
+	}
+	if fechaAccion != nil {
+		startOfDay := time.Date(fechaAccion.Year(), fechaAccion.Month(), fechaAccion.Day(), 0, 0, 0, 0, fechaAccion.Location())
+		endOfDay := startOfDay.Add(24 * time.Hour)
+		query = query.Where("fecha_accion >= ? AND fecha_accion < ?", startOfDay, endOfDay)
+	}
+	if err := query.Find(&deliveries).Error; err != nil {
+		return nil, fmt.Errorf(constants.ErrFindDeliveriesByRto, err)
 	}
 	return deliveries, nil
 }

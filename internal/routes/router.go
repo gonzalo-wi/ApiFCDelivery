@@ -11,16 +11,14 @@ import (
 )
 
 func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *transport.DispenserHandler,
-	workOrderHandler *transport.WorkOrderHandler, cfg *config.Config) *gin.Engine {
+	workOrderHandler *transport.WorkOrderHandler, termsSessionHandler *transport.TermsSessionHandler,
+	deliveryWithTermsHandler *transport.DeliveryWithTermsHandler, cfg *config.Config) *gin.Engine {
 	router := gin.New()
 
-	// Middleware de recovery (panic handling)
 	router.Use(gin.Recovery())
 
-	// Middleware de logging con zerolog
 	router.Use(middleware.Logger())
 
-	// Configuración de CORS
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.GetCORSOrigins(),
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -35,7 +33,8 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *t
 		RegisterDeliveryRoutes(api, deliveryHandler)
 		RegisterDispenserRoutes(api, dispenserHandler)
 		RegisterWorkOrderRoutes(api, workOrderHandler)
+		RegisterTermsRoutes(api, termsSessionHandler)
+		RegisterDeliveryWithTermsRoutes(api, deliveryWithTermsHandler)
 	}
-
 	return router
 }
