@@ -23,9 +23,8 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("error cargando .env: %w", err)
-	}
+	// Intentar cargar .env pero no fallar si no existe (Docker inyecta variables)
+	_ = godotenv.Load()
 
 	config := &Config{
 		DBHost:         os.Getenv("DB_HOST"),

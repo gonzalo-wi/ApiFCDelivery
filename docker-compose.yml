@@ -7,19 +7,8 @@ services:
     restart: unless-stopped
     ports:
       - "8095:8080"
-    environment:
-      - DB_HOST=192.168.0.227
-      - DB_PORT=3306
-      - DB_USER=cellcontroluser
-      - DB_PASSWORD=Clave33$$
-      - DB_NAME=friocalor
-      - PORT=8080
-      - ENVIRONMENT=production
-      - CORS_ORIGINS=http://localhost:5173,http://192.168.0.250:8095,https://www.somoselagua.com.ar
-      - INFOBIP_BASE_URL=https://api2.infobip.com
-      - INFOBIP_API_KEY=${INFOBIP_API_KEY}
-      - APP_BASE_URL=https://www.somoselagua.com.ar/api/dist
-      - TERMS_TTL_HOURS=48
+    env_file:
+      - .env
     networks:
       - gofrocalor-network
     healthcheck:
