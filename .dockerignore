@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.env.example
+*.md
+!TERMS_README.md
+tests/
+scripts/
+docs/
+.vscode
+.idea
+*.log
+tmp/
+.DS_Store
