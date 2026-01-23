@@ -36,9 +36,5 @@ type TermsActionResponse struct {
 }
 
 type InfobipWebhookPayload struct {
-	Event      string     `json:"event"`
-	SessionID  string     `json:"sessionId"`
-	Token      string     `json:"token"`
-	AcceptedAt *time.Time `json:"acceptedAt,omitempty"`
-	RejectedAt *time.Time `json:"rejectedAt,omitempty"`
+	Acepta bool `json:"acepta"`
 }

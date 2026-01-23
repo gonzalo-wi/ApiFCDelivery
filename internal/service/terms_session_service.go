@@ -229,12 +229,10 @@ func (s *termsSessionService) validateSessionForAction(session *models.TermsSess
 
 // notifyInfobipWithRetries envía notificación a Infobip con reintentos
 func (s *termsSessionService) notifyInfobipWithRetries(ctx context.Context, session *models.TermsSession, event string) {
+	// Determinar si fue aceptado (acepta: true) o rechazado (acepta: false)
+	acepta := event == constants.EventTermsAccepted
 	payload := dto.InfobipWebhookPayload{
-		Event:      event,
-		SessionID:  session.SessionID,
-		Token:      session.Token,
-		AcceptedAt: session.AcceptedAt,
-		RejectedAt: session.RejectedAt,
+		Acepta: acepta,
 	}
 	var lastError error
 	for attempt := 0; attempt < s.maxRetries; attempt++ {
