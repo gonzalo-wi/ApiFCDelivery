@@ -15,6 +15,10 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *t
 	deliveryWithTermsHandler *transport.DeliveryWithTermsHandler, cfg *config.Config) *gin.Engine {
 	router := gin.New()
 
+	// Deshabilitar el redirect automático de trailing slashes
+	router.RedirectTrailingSlash = false
+	router.RedirectFixedPath = false
+
 	router.Use(gin.Recovery())
 
 	router.Use(middleware.Logger())
@@ -27,6 +31,14 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *t
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+			"timestamp": time.Now().Unix(),
+		})
+	})
 
 	api := router.Group("/api/v1")
 	{
