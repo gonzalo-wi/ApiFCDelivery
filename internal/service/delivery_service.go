@@ -2,6 +2,7 @@ package service
 
 import (
 	"GoFrioCalor/internal/constants"
+	"GoFrioCalor/internal/dto"
 	"GoFrioCalor/internal/models"
 	"GoFrioCalor/internal/store"
 	"context"
@@ -19,6 +20,7 @@ type DeliveryService interface {
 	Create(ctx context.Context, delivery *models.Delivery) error
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
+	CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, error)
 }
 type deliveryService struct {
 	store store.DeliveryStore
@@ -59,6 +61,48 @@ func (s *deliveryService) Update(ctx context.Context, delivery *models.Delivery)
 
 func (s *deliveryService) Delete(ctx context.Context, id int) error {
 	return s.store.Delete(ctx, id)
+}
+
+// CreateFromInfobip crea una entrega desde el chatbot de Infobip
+// Maneja concurrencia de forma segura mediante transacciones de base de datos
+func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, error) {
+	// Validar cantidad total de dispensers
+	cantidadTotal := req.Tipos.P + req.Tipos.M
+	if err := validateDispenserQuantity(cantidadTotal); err != nil {
+		return nil, err
+	}
+
+	// Parsear fecha de acción
+	fechaAccion, err := parseFechaAccion(req.FechaAccion)
+	if err != nil {
+		return nil, err
+	}
+
+	// Crear dispensers placeholder
+	dispensers := createPlaceholderDispensers(req.NroRto, req.Tipos.P, req.Tipos.M)
+
+	// Crear la entrega
+	delivery := &models.Delivery{
+		NroCta:       req.NroCta,
+		NroRto:       req.NroRto,
+		Dispensers:   dispensers,
+		Cantidad:     cantidadTotal,
+		Estado:       models.Pendiente,
+		TipoEntrega:  req.TipoEntrega,
+		EntregadoPor: req.EntregadoPor,
+		SessionID:    req.SessionID,
+		FechaAccion:  fechaAccion,
+	}
+
+	// Generar token de 4 dígitos (thread-safe)
+	delivery.Token = s.generateToken()
+
+	// Guardar en base de datos (la concurrencia se maneja a nivel de BD)
+	if err := s.store.Create(ctx, delivery); err != nil {
+		return nil, fmt.Errorf("error creando entrega: %w", err)
+	}
+
+	return delivery, nil
 }
 
 // generar token de 4 digitos

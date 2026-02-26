@@ -3,15 +3,17 @@ package dto
 import "GoFrioCalor/internal/models"
 
 type DeliveryResponse struct {
-	ID          int                  `json:"id,omitempty"`
-	NroCta      string               `json:"nro_cta"`
-	NroRto      string               `json:"nro_rto"`
-	Dispensers  []DispenserResponse  `json:"dispensers"`
-	Cantidad    uint                 `json:"cantidad"`
-	Token       string               `json:"token"`
-	Estado      models.EstadoEntrega `json:"estado"`
-	TipoEntrega models.TipoEntrega   `json:"tipo_entrega"`
-	FechaAccion string               `json:"fecha_accion"`
+	ID           int                  `json:"id,omitempty"`
+	NroCta       string               `json:"nro_cta"`
+	NroRto       string               `json:"nro_rto"`
+	Dispensers   []DispenserResponse  `json:"dispensers"`
+	Cantidad     uint                 `json:"cantidad"`
+	Token        string               `json:"token"`
+	Estado       models.EstadoEntrega `json:"estado"`
+	TipoEntrega  models.TipoEntrega   `json:"tipo_entrega"`
+	EntregadoPor models.EntregadoPor  `json:"entregado_por"`
+	SessionID    string               `json:"session_id,omitempty"`
+	FechaAccion  string               `json:"fecha_accion"`
 }
 
 func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
@@ -34,6 +36,7 @@ func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
 		Token:       delivery.Token,
 		Estado:      delivery.Estado,
 		TipoEntrega: delivery.TipoEntrega,
+		SessionID:   delivery.SessionID,
 		FechaAccion: delivery.FechaAccion.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }

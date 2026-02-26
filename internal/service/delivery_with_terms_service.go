@@ -104,21 +104,10 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 		return nil, fmt.Errorf("error deserializando datos de entrega: %w", err)
 	}
 
-	var fechaAccion models.CustomDate
-	if deliveryReq.FechaAccion != "" {
-		parsedTime, err := time.Parse(time.RFC3339, deliveryReq.FechaAccion)
-		if err != nil {
-			parsedTime, err = time.Parse("2006-01-02", deliveryReq.FechaAccion)
-			if err != nil {
-				fechaAccion = models.CustomDate{Time: time.Now()}
-			} else {
-				fechaAccion = models.CustomDate{Time: parsedTime}
-			}
-		} else {
-			fechaAccion = models.CustomDate{Time: parsedTime}
-		}
-	} else {
-		fechaAccion = models.CustomDate{Time: time.Now()}
+	// Parsear fecha de acción usando helper
+	fechaAccion, err := parseFechaAccion(deliveryReq.FechaAccion)
+	if err != nil {
+		return nil, err
 	}
 
 	// Crear dispensers
@@ -137,7 +126,7 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 		NroRto:         deliveryReq.NroRto,
 		Dispensers:     dispensers,
 		Cantidad:       deliveryReq.Cantidad,
-		Estado:         models.Completado, // Automáticamente completado si aceptó términos
+		Estado:         models.Completado,
 		TipoEntrega:    deliveryReq.TipoEntrega,
 		TermsSessionID: &termsSession.ID,
 		FechaAccion:    fechaAccion,
@@ -162,21 +151,13 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 
 // GetDeliveryByTermsToken obtiene la entrega asociada a un token de términos
 func (s *deliveryWithTermsService) GetDeliveryByTermsToken(ctx context.Context, termsToken string) (*models.Delivery, error) {
-	// Obtener sesión de términos
 	termsSession, err := s.termsSessionStore.FindByToken(ctx, termsToken)
 	if err != nil {
 		return nil, fmt.Errorf("sesión de términos no encontrada")
 	}
-
-	// Si no hay datos de entrega aún
 	if termsSession.DeliveryData == "" {
 		return nil, fmt.Errorf("no hay datos de entrega asociados")
 	}
-
-	// Buscar si ya se creó la entrega
-	// (buscamos por terms_session_id)
-	// Por ahora, no implementamos FindByTermsSessionID, pero podríamos agregarlo si lo necesitas
-
 	return nil, fmt.Errorf("funcionalidad no implementada")
 }
 

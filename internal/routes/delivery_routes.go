@@ -14,6 +14,7 @@ func RegisterDeliveryRoutes(router *gin.RouterGroup, handler *transport.Delivery
 		deliveries.GET("/by-cta", handler.GetDeliveriesByNroCta)
 		deliveries.GET("/:id", handler.GetDeliveryByID)
 		deliveries.POST("", handler.CreateDelivery)
+		deliveries.POST("/infobip", handler.CreateDeliveryFromInfobip)
 		deliveries.PUT("/:id", handler.UpdateDelivery)
 		deliveries.DELETE("/:id", handler.DeleteDelivery)
 	}

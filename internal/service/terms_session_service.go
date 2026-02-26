@@ -282,7 +282,7 @@ func (s *termsSessionService) notifyInfobipWithRetries(ctx context.Context, sess
 
 // generateSecureToken genera un token seguro usando crypto/rand
 func generateSecureToken() (string, error) {
-	bytes := make([]byte, 32) // 32 bytes = 64 caracteres hex
+	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
 	}

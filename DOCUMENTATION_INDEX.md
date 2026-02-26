@@ -31,6 +31,44 @@
 - Monitoreo y logs
 - Consideraciones de producción
 
+📄 **[docs/INFOBIP_DELIVERY_API.md](docs/INFOBIP_DELIVERY_API.md)** (20 min)
+- API para chatbot de Infobip
+- Creación directa de entregas
+- Especificación de tipos de dispensers (Pie/Mesada)
+- Generación de tokens de 4 dígitos
+- Manejo de concurrencia
+- Ejemplos de integración con chatbot
+
+📄 **[docs/REFACTORING_SUMMARY.md](docs/REFACTORING_SUMMARY.md)** (10 min)
+- Resumen de refactorización y modularización
+- Helper functions creadas
+- Mejoras en mantenibilidad y testabilidad
+- Métricas de mejora
+- Tests unitarios
+
+📄 **[docs/INFOBIP_JSON_EXAMPLES.md](docs/INFOBIP_JSON_EXAMPLES.md)** (15 min)
+- Ejemplos JSON completos para el proveedor
+- Casos exitosos y de error
+- Formato de request y response
+- Integración con chatbot
+- Testing con cURL
+
+📄 **[docs/POSTMAN_EXAMPLES.md](docs/POSTMAN_EXAMPLES.md)** (20 min)
+- Guía completa para testing en Postman
+- Configuración de colección
+- Variables y pre-request scripts
+- Tests automáticos
+- Tips y trucos
+
+📦 **[postman/Infobip_Delivery_Collection.json](postman/Infobip_Delivery_Collection.json)**
+- Colección lista para importar en Postman
+- 9 ejemplos preconfigurads (5 exitosos + 4 errores)
+- Variables de entorno incluidas
+
+📖 **[postman/README.md](postman/README.md)** (5 min)
+- Guía rápida para usar la colección Postman
+- Instrucciones de importación
+
 ---
 
 ## 🎨 Integración Frontend
@@ -85,7 +123,13 @@
 - Pruebas automatizadas del flujo completo
 - Para Linux/Mac Bash
 
-🔍 **[scripts/verify_installation.ps1](scripts/verify_installation.ps1)**
+� **[tests/test_infobip_delivery.ps1](tests/test_infobip_delivery.ps1)**
+- Pruebas del endpoint de Infobip Delivery
+- Tests de casos válidos e inválidos
+- Tests de concurrencia
+- Para Windows PowerShell
+
+�🔍 **[scripts/verify_installation.ps1](scripts/verify_installation.ps1)**
 - Verificación de la instalación
 - Detecta archivos faltantes
 - Valida configuración

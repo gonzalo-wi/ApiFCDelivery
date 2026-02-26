@@ -187,3 +187,51 @@ func (h *DeliveryHandler) GetDeliveriesByNroCta(c *gin.Context) {
 	response := dto.ToDeliveryResponseList(deliveries)
 	c.JSON(http.StatusOK, response)
 }
+
+// CreateDeliveryFromInfobip maneja la creación de entregas desde el chatbot de Infobip
+// POST /api/v1/deliveries/infobip
+func (h *DeliveryHandler) CreateDeliveryFromInfobip(c *gin.Context) {
+	ctx := c.Request.Context()
+	var req dto.InfobipDeliveryRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		if validationErrors := FormatValidationError(err); len(validationErrors) > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   constants.MsgInvalidInput,
+				"details": validationErrors,
+			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   constants.MsgInvalidInput,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Validación adicional de cantidad total
+	totalDispensers := req.Tipos.P + req.Tipos.M
+	if totalDispensers == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   constants.MsgValidationFailed,
+			"message": "Debe especificar al menos un dispenser (P o M)",
+		})
+		return
+	}
+
+	delivery, err := h.service.CreateFromInfobip(ctx, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   constants.MsgServerError,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	response := dto.InfobipDeliveryResponse{
+		Token:   delivery.Token,
+		Message: "Entrega creada exitosamente",
+	}
+
+	c.JSON(http.StatusCreated, response)
+}
