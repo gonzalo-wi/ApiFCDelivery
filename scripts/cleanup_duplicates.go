@@ -65,7 +65,7 @@ func main() {
 	// 2. Limpiar duplicados (setear session_id = NULL excepto el más antiguo)
 	for _, dup := range duplicates {
 		fmt.Printf("Limpiando duplicados de session_id: %s (conservando ID: %d)\n", dup.SessionID, dup.MinID)
-		
+
 		result := db.Table("deliveries").
 			Where("session_id = ? AND id > ?", dup.SessionID, dup.MinID).
 			Update("session_id", nil)

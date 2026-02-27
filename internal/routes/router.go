@@ -12,7 +12,7 @@ import (
 
 func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *transport.DispenserHandler,
 	workOrderHandler *transport.WorkOrderHandler, termsSessionHandler *transport.TermsSessionHandler,
-	deliveryWithTermsHandler *transport.DeliveryWithTermsHandler, cfg *config.Config) *gin.Engine {
+	deliveryWithTermsHandler *transport.DeliveryWithTermsHandler, mobileDeliveryHandler *transport.MobileDeliveryHandler, cfg *config.Config) *gin.Engine {
 	router := gin.New()
 
 	// Deshabilitar el redirect automático de trailing slashes
@@ -47,6 +47,11 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *t
 		RegisterWorkOrderRoutes(api, workOrderHandler)
 		RegisterTermsRoutes(api, termsSessionHandler)
 		RegisterDeliveryWithTermsRoutes(api, deliveryWithTermsHandler)
+
+		// Mobile routes (solo si el handler está disponible)
+		if mobileDeliveryHandler != nil {
+			RegisterMobileRoutes(api, mobileDeliveryHandler)
+		}
 	}
 	return router
 }

@@ -1,43 +1,89 @@
-# Colección Postman - Infobip Delivery API
+# Colecciones Postman - GoFrioCalor API
 
-## 📥 Importar a Postman
+Este directorio contiene dos colecciones de Postman:
 
-### Opción 1: Importar archivo JSON
+1. **Mobile_Delivery_Flow.postman_collection.json** - Flujo completo de entregas móviles con RabbitMQ
+2. **Infobip_Delivery_Collection.json** - API de integración con Infobip (sistema externo)
+
+---
+
+## 📱 Mobile Delivery Flow (NUEVO)
+
+### 📥 Importar a Postman
+1. Abre Postman
+2. Click en **Import** (botón superior izquierdo)
+3. Selecciona el archivo: `Mobile_Delivery_Flow.postman_collection.json`
+4. Click en **Import**
+
+### 🚀 Uso Completo
+
+#### 1. Inicia el servidor con RabbitMQ
+```powershell
+.\start_server.ps1
+```
+
+#### 2. Ejecuta los requests en orden:
+
+**Paso 0: Setup (ejecutar una sola vez)**
+- ✅ **Crear Delivery** - Crea un delivery y guarda automáticamente el ID y Token
+- Agregar Dispenser 1
+- Agregar Dispenser 2
+
+**Pasos 1-3: Flujo Mobile (secuencial)**
+1. **Validar Token** - El cliente proporciona el token
+2. **Validar Dispenser 1** - Escanear primer dispenser
+3. **Validar Dispenser 2** - Escanear segundo dispenser
+4. **Completar Entrega** - Finaliza y envía mensaje a RabbitMQ
+
+#### 3. Verifica el resultado
+- El endpoint "Completar Entrega" responde con `work_order_queued: true`
+- Revisa los logs del servidor para ver:
+  - Message published to RabbitMQ
+  - Consumer processing message
+  - WorkOrder created: OT-XXXXXX
+  - PDF generated
+  - Email sent
+
+### 🔄 Variables Automáticas
+La colección usa variables que se configuran automáticamente:
+- `delivery_id` - Se obtiene al crear el delivery
+- `token` - Se obtiene al crear el delivery
+- `base_url` - Por defecto: `http://localhost:8080/api/v1`
+
+### ⚡ Flujo Rápido
+1. Ejecuta "Crear Delivery" una vez
+2. Ejecuta "Agregar Dispenser 1" y "Agregar Dispenser 2"
+3. Ahora puedes ejecutar los 4 endpoints mobile en secuencia
+4. ¡Listo! La WorkOrder se crea automáticamente en background
+
+---
+
+## 📨 Infobip Delivery API
+
+### 📥 Importar a Postman
 1. Abre Postman
 2. Click en **Import** (botón superior izquierdo)
 3. Selecciona el archivo: `Infobip_Delivery_Collection.json`
 4. Click en **Import**
 
-### Opción 2: Arrastrar y soltar
-1. Abre Postman
-2. Arrastra el archivo `Infobip_Delivery_Collection.json` a la ventana de Postman
-3. Se importará automáticamente
+### 🚀 Uso Rápido
 
----
-
-## 🚀 Uso Rápido
-
-### 1. Asegúrate de que el servidor esté corriendo
+#### 1. Asegúrate de que el servidor esté corriendo
 ```bash
 go run api/cmd/main.go
 ```
 
-El servidor debe estar en: `http://localhost:8080`
-
-### 2. Abre la colección en Postman
-- Busca "GoFrioCalor - Infobip Delivery API" en el panel izquierdo
-
-### 3. Ejecuta los ejemplos
+#### 2. Ejecuta los ejemplos
 La colección incluye **9 ejemplos** organizados en 2 carpetas:
 
-#### ✅ Casos Exitosos (5 ejemplos)
+**✅ Casos Exitosos (5 ejemplos)**
 - Instalación - 2 Pie + 1 Mesada
 - Recambio - 1 Pie + 1 Mesada
 - Retiro - 3 Mesada
 - Solo Pie - 3 Dispensers
 - Solo Mesada - 2 Dispensers
 
-#### ❌ Casos de Error (4 ejemplos)
+**❌ Casos de Error (4 ejemplos)**
 - Error - Sin Dispensers (0 total)
 - Error - Campo Faltante (nro_cta)
 - Error - Tipo Entrega Inválido

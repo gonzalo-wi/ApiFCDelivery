@@ -28,6 +28,9 @@ const (
 type Delivery struct {
 	ID             int           `gorm:"primaryKey" json:"id"`
 	NroCta         string        `gorm:"not null" json:"nro_cta" binding:"required,min=1,max=50"`
+	Name           string        `gorm:"type:varchar(200)" json:"name"`
+	Address        string        `gorm:"type:varchar(300)" json:"address"`
+	Locality       string        `gorm:"type:varchar(100)" json:"locality"`
 	NroRto         string        `gorm:"not null" json:"nro_rto" binding:"required,min=1,max=50"`
 	Dispensers     []Dispenser   `gorm:"foreignKey:DeliveryID" json:"dispensers"`
 	Cantidad       uint          `gorm:"not null" json:"cantidad" binding:"required,min=1,max=3"`
