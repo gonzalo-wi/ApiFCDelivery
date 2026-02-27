@@ -35,7 +35,7 @@ type Delivery struct {
 	Estado         EstadoEntrega `gorm:"not null" json:"estado" binding:"required,oneof=Pendiente Completado Cancelado"`
 	TipoEntrega    TipoEntrega   `gorm:"not null" json:"tipo_entrega" binding:"required,oneof=Instalacion Retiro Recambio"`
 	EntregadoPor   EntregadoPor  `gorm:"not null" json:"entregado_por" binding:"required,oneof=Repartidor Tecnico"`
-	SessionID      string        `gorm:"index" json:"session_id,omitempty"`
+	SessionID      string        `gorm:"index:idx_session_id,unique" json:"session_id,omitempty"`
 	TermsSessionID *int64        `gorm:"index" json:"terms_session_id,omitempty"`
 	FechaAccion    CustomDate    `json:"fecha_accion"`
 	CreatedAt      time.Time     `gorm:"autoCreateTime" json:"created_at"`

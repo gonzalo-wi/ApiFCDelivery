@@ -13,6 +13,7 @@ import (
 type DeliveryStore interface {
 	FindAll(ctx context.Context) ([]models.Delivery, error)
 	FindByID(ctx context.Context, id int) (*models.Delivery, error)
+	FindBySessionID(ctx context.Context, sessionID string) (*models.Delivery, error)
 	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
 	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
 	Create(ctx context.Context, delivery *models.Delivery) error
@@ -39,6 +40,17 @@ func (s *deliveryStore) FindByID(ctx context.Context, id int) (*models.Delivery,
 	var delivery models.Delivery
 	if err := s.db.WithContext(ctx).Preload("Dispensers").First(&delivery, id).Error; err != nil {
 		return nil, fmt.Errorf(constants.ErrFindDeliveryByID, id, err)
+	}
+	return &delivery, nil
+}
+
+func (s *deliveryStore) FindBySessionID(ctx context.Context, sessionID string) (*models.Delivery, error) {
+	var delivery models.Delivery
+	if err := s.db.WithContext(ctx).Preload("Dispensers").Where("session_id = ?", sessionID).First(&delivery).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error buscando entrega por session_id: %w", err)
 	}
 	return &delivery, nil
 }

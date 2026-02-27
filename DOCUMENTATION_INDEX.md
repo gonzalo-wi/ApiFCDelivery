@@ -7,6 +7,7 @@
 1. **[TERMS_README.md](TERMS_README.md)** - Referencia rápida (5 min)
 2. **[docs/TERMS_QUICKSTART.md](docs/TERMS_QUICKSTART.md)** - Guía de inicio (10 min)
 3. **[scripts/verify_installation.ps1](scripts/verify_installation.ps1)** - Verificar instalación
+4. **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Guía de despliegue a producción (15 min) 🆕
 
 ---
 
@@ -139,9 +140,17 @@
 ## 🗄️ Base de Datos
 
 📄 **[migrations/001_create_terms_sessions.sql](migrations/001_create_terms_sessions.sql)**
-- Script SQL para crear la tabla
+- Script SQL para crear la tabla terms_sessions
 - Definición de índices
 - Comentarios explicativos
+
+📄 **[migrations/002_add_session_id_to_deliveries.sql](migrations/002_add_session_id_to_deliveries.sql)**
+- Agrega columna session_id a tabla deliveries
+- Foreign key con terms_sessions
+
+📄 **[migrations/003_add_dispenser_types_p_m.sql](migrations/003_add_dispenser_types_p_m.sql)** 🆕
+- Documentación de tipos de dispensador P (Pie) y M (Mesada)
+- GORM AutoMigrate maneja estos cambios automáticamente
 
 ---
 

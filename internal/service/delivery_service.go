@@ -64,8 +64,21 @@ func (s *deliveryService) Delete(ctx context.Context, id int) error {
 }
 
 // CreateFromInfobip crea una entrega desde el chatbot de Infobip
-// Maneja concurrencia de forma segura mediante transacciones de base de datos
+// Implementa idempotencia: si ya existe una entrega con el mismo session_id, la devuelve
+// Maneja concurrencia de forma segura mediante índice único en BD y transacciones
 func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, error) {
+	// Verificar si ya existe una entrega con este session_id (idempotencia)
+	if req.SessionID != "" {
+		existingDelivery, err := s.store.FindBySessionID(ctx, req.SessionID)
+		if err != nil {
+			return nil, fmt.Errorf("error verificando session_id existente: %w", err)
+		}
+		if existingDelivery != nil {
+			// Ya existe una entrega con este session_id, devolverla (idempotente)
+			return existingDelivery, nil
+		}
+	}
+
 	// Validar cantidad total de dispensers
 	cantidadTotal := req.Tipos.P + req.Tipos.M
 	if err := validateDispenserQuantity(cantidadTotal); err != nil {
