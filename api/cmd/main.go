@@ -7,6 +7,7 @@ import (
 	"GoFrioCalor/internal/service"
 	"GoFrioCalor/internal/store"
 	"GoFrioCalor/internal/transport"
+	"GoFrioCalor/migrations"
 	"context"
 
 	"github.com/rs/zerolog/log"
@@ -27,6 +28,13 @@ func main() {
 	}
 
 	log.Info().Msg(constants.MsgDBConnectedSuccess)
+
+	// Run database migrations
+	migrationService := service.NewMigrationService(db)
+	if err := migrationService.RunMigrations(migrations.FS); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run database migrations")
+	}
+	log.Info().Msg("Database migrations completed successfully")
 
 	// Stores
 	deliveryStore := store.NewDeliveryStore(db)
