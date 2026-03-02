@@ -104,7 +104,7 @@ func main() {
 
 	log.Info().Str("port", cfg.Port).Msgf(constants.MsgServerRunning, cfg.Port)
 
-	if err := router.Run(":" + cfg.Port); err != nil {
+	if err := router.Run("0.0.0.0:" + cfg.Port); err != nil {
 		log.Fatal().Err(err).Msg(constants.MsgErrorStartingServer)
 	}
 }
