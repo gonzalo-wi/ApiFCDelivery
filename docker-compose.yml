@@ -4,13 +4,16 @@ services:
   app:
     build: .
     container_name: gofrocalor-api
-    restart: "no"
-    ports:
-      - "8080:8080"
+    network_mode: "host"
+    restart: unless-stopped
+    # ports no se usa con network_mode: host
+    # ports:
+    #   - "8080:8080"
     env_file:
       - .env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # extra_hosts no es necesario con host mode
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
