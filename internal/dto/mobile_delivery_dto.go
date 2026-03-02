@@ -51,6 +51,9 @@ type ValidateDispenserResponse struct {
 // MobileCompleteDeliveryRequest - Completar la entrega desde app móvil
 type MobileCompleteDeliveryRequest struct {
 	DeliveryID int      `json:"delivery_id" binding:"required"`
+	Name       string   `json:"name"`
+	Address    string   `json:"address"`
+	Locality   string   `json:"locality"`
 	Token      string   `json:"token" binding:"required"`
 	Validated  []string `json:"validated_dispensers" binding:"required,min=1"`
 }

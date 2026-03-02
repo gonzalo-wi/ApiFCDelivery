@@ -176,7 +176,18 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		return nil, fmt.Errorf("faltan dispensers por escanear (esperados: %d, validados: %d)", len(delivery.Dispensers), len(req.Validated))
 	}
 
-	// 5. Actualizar estado del delivery
+	// 5. Actualizar datos del cliente desde la app móvil
+	if req.Name != "" {
+		delivery.Name = req.Name
+	}
+	if req.Address != "" {
+		delivery.Address = req.Address
+	}
+	if req.Locality != "" {
+		delivery.Locality = req.Locality
+	}
+
+	// 6. Actualizar estado del delivery
 	delivery.Estado = models.Completado
 	delivery.UpdatedAt = time.Now()
 
@@ -187,9 +198,15 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 
 	log.Info().
 		Int("delivery_id", req.DeliveryID).
+		Str("name", delivery.Name).
+		Str("locality", delivery.Locality).
+		Msg("Client data updated from mobile app")
+
+	log.Info().
+		Int("delivery_id", req.DeliveryID).
 		Msg("Delivery marked as completed")
 
-	// 6. Construir mensaje para RabbitMQ
+	// 7. Construir mensaje para RabbitMQ
 	dispensersMsg := make([]dto.DispenserMessage, 0, len(delivery.Dispensers))
 	for _, d := range delivery.Dispensers {
 		dispensersMsg = append(dispensersMsg, dto.DispenserMessage{
@@ -211,7 +228,7 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		DeliveryID: delivery.ID,
 	}
 
-	// 7. Publicar a RabbitMQ
+	// 8. Publicar a RabbitMQ
 	err = s.publisher.PublishWorkOrder(ctx, workOrderMsg)
 	if err != nil {
 		log.Error().Err(err).Int("delivery_id", req.DeliveryID).Msg("Error publishing work order message")
@@ -221,7 +238,7 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		Int("delivery_id", req.DeliveryID).
 		Msg("Work order message published successfully")
 
-	// 8. Construir respuesta con todos los datos
+	// 9. Construir respuesta con todos los datos
 	dispensersResponse := make([]dto.DispenserCompletedDTO, 0, len(delivery.Dispensers))
 	for _, d := range delivery.Dispensers {
 		dispensersResponse = append(dispensersResponse, dto.DispenserCompletedDTO{

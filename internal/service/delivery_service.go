@@ -94,6 +94,12 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 	// Crear dispensers placeholder
 	dispensers := createPlaceholderDispensers(req.NroRto, req.Tipos.P, req.Tipos.M)
 
+	// Preparar SessionID como puntero (nil si está vacío)
+	var sessionIDPtr *string
+	if req.SessionID != "" {
+		sessionIDPtr = &req.SessionID
+	}
+
 	// Crear la entrega
 	delivery := &models.Delivery{
 		NroCta:       req.NroCta,
@@ -103,7 +109,7 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		Estado:       models.Pendiente,
 		TipoEntrega:  req.TipoEntrega,
 		EntregadoPor: req.EntregadoPor,
-		SessionID:    req.SessionID,
+		SessionID:    sessionIDPtr,
 		FechaAccion:  fechaAccion,
 	}
 

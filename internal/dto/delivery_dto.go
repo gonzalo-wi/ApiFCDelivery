@@ -19,7 +19,7 @@ type DeliveryResponse struct {
 	Estado          models.EstadoEntrega `json:"estado"`
 	TipoEntrega     models.TipoEntrega   `json:"tipo_entrega"`
 	EntregadoPor    models.EntregadoPor  `json:"entregado_por"`
-	SessionID       string               `json:"session_id,omitempty"`
+	SessionID       *string              `json:"session_id,omitempty"`
 	FechaAccion     string               `json:"fecha_accion"`
 }
 
