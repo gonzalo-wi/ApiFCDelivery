@@ -97,7 +97,7 @@ func main() {
 	// Mobile Delivery - Validación y Completar Entregas
 	var mobileDeliveryHandler *transport.MobileDeliveryHandler
 	if rabbitPublisher != nil {
-		mobileDeliveryService := service.NewMobileDeliveryServiceWithServices(deliveryStore, rabbitPublisher, pdfService, emailService)
+		mobileDeliveryService := service.NewMobileDeliveryServiceWithServices(deliveryStore, termsSessionStore, rabbitPublisher, pdfService, emailService)
 		mobileDeliveryHandler = transport.NewMobileDeliveryHandler(mobileDeliveryService, auditService)
 		log.Info().Msg("Mobile Delivery Service initialized with PDF and Email services")
 	}

@@ -227,7 +227,13 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.SetX(17)
 	pdf.Cell(50, 6, constants.PDFLabelDateTime)
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(0, 6, time.Now().Format("02/01/2006 15:04"))
+
+	// Usar la fecha de aceptación de términos si está disponible
+	acceptedDateTime := workOrder.AcceptedAt
+	if acceptedDateTime == "" {
+		acceptedDateTime = time.Now().Format("02/01/2006 15:04")
+	}
+	pdf.Cell(0, 6, acceptedDateTime)
 	pdf.Ln(7)
 
 	pdf.SetFont("Arial", "B", 10)

@@ -19,27 +19,30 @@ type MobileDeliveryService interface {
 }
 
 type mobileDeliveryService struct {
-	deliveryStore store.DeliveryStore
-	publisher     *RabbitMQPublisher
-	pdfService    PDFService
-	emailService  EmailService
+	deliveryStore     store.DeliveryStore
+	termsSessionStore store.TermsSessionStore
+	publisher         *RabbitMQPublisher
+	pdfService        PDFService
+	emailService      EmailService
 }
 
 func NewMobileDeliveryService(deliveryStore store.DeliveryStore, publisher *RabbitMQPublisher) MobileDeliveryService {
 	return &mobileDeliveryService{
-		deliveryStore: deliveryStore,
-		publisher:     publisher,
-		pdfService:    nil,
-		emailService:  nil,
+		deliveryStore:     deliveryStore,
+		termsSessionStore: nil,
+		publisher:         publisher,
+		pdfService:        nil,
+		emailService:      nil,
 	}
 }
 
-func NewMobileDeliveryServiceWithServices(deliveryStore store.DeliveryStore, publisher *RabbitMQPublisher, pdfService PDFService, emailService EmailService) MobileDeliveryService {
+func NewMobileDeliveryServiceWithServices(deliveryStore store.DeliveryStore, termsSessionStore store.TermsSessionStore, publisher *RabbitMQPublisher, pdfService PDFService, emailService EmailService) MobileDeliveryService {
 	return &mobileDeliveryService{
-		deliveryStore: deliveryStore,
-		publisher:     publisher,
-		pdfService:    pdfService,
-		emailService:  emailService,
+		deliveryStore:     deliveryStore,
+		termsSessionStore: termsSessionStore,
+		publisher:         publisher,
+		pdfService:        pdfService,
+		emailService:      emailService,
 	}
 }
 
@@ -294,7 +297,26 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 
 	localLog.Info().Msg("Generating PDF and sending completion email")
 
-	// 1. Construir WorkOrderRequest para generar el PDF
+	// 1. Obtener fecha de aceptación de términos si existe
+	acceptedAtStr := ""
+	if delivery.TermsSessionID != nil && s.termsSessionStore != nil {
+		termsSession, err := s.termsSessionStore.GetByID(ctx, *delivery.TermsSessionID)
+		if err == nil && termsSession != nil && termsSession.AcceptedAt != nil {
+			acceptedAtStr = termsSession.AcceptedAt.Format("02/01/2006 15:04")
+			localLog.Info().
+				Str("accepted_at", acceptedAtStr).
+				Msg("Found terms acceptance date")
+		} else {
+			localLog.Warn().Msg("Terms session not found or not accepted, will use current time")
+		}
+	}
+
+	// Si no hay fecha de aceptación, usar la fecha actual
+	if acceptedAtStr == "" {
+		acceptedAtStr = time.Now().Format("02/01/2006 15:04")
+	}
+
+	// 2. Construir WorkOrderRequest para generar el PDF
 	dispensers := make([]dto.WorkOrderDispenserRequest, 0, len(validatedDispensers))
 	for _, code := range validatedDispensers {
 		dispensers = append(dispensers, dto.WorkOrderDispenserRequest{
@@ -309,12 +331,13 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 		Locality:   delivery.Locality,
 		NroRto:     delivery.NroRto,
 		CreatedAt:  delivery.FechaAccion.Format("2006-01-02"),
+		AcceptedAt: acceptedAtStr,
 		Dispensers: dispensers,
 		TipoAccion: string(delivery.TipoEntrega),
 		Token:      delivery.Token,
 	}
 
-	// 2. Generar PDF
+	// 3. Generar PDF
 	pdfBytes, orderNumber, err := s.pdfService.GenerateWorkOrderPDF(ctx, workOrderReq)
 	if err != nil {
 		localLog.Error().Err(err).Msg("Error generating PDF for completion email")
@@ -346,61 +369,329 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 
 // buildCompletionEmailHTML construye el HTML del email de instalación completada
 func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delivery, dispensers []string, orderNumber string) string {
-	dispensersList := ""
+	dispensersRows := ""
 	for i, code := range dispensers {
-		dispensersList += fmt.Sprintf("<li>Dispenser #%d: %s</li>", i+1, code)
+		bgColor := "#ffffff"
+		if i%2 == 1 {
+			bgColor = "#f8f9fa"
+		}
+		dispensersRows += fmt.Sprintf(`
+			<tr style="background-color: %s;">
+				<td style="padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center; font-weight: 600; color: #2c3e50;">%d</td>
+				<td style="padding: 12px; border-bottom: 1px solid #e0e0e0; font-family: 'Courier New', monospace; color: #1976d2; font-weight: 500;">%s</td>
+			</tr>`, bgColor, i+1, code)
 	}
 
 	return fmt.Sprintf(`
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instalación Completada</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }
-        .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-        .info-box { background-color: #e8f5e9; padding: 15px; margin: 15px 0; border-left: 4px solid #4caf50; }
-        .dispensers-list { background-color: white; padding: 15px; margin: 10px 0; }
-        .footer { text-align: center; padding: 20px; color: #777; font-size: 12px; }
-        h2 { color: #2c3e50; margin-top: 0; }
-        ul { padding-left: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            line-height: 1.6; 
+            color: #333;
+            background-color: #ffffff;
+        }
+        .email-wrapper { 
+            background-color: #ffffff;
+            padding: 40px 20px;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        .header { 
+            background: linear-gradient(135deg, #1e88e5 0%%, #1565c0 100%%);
+            color: white; 
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: #ffffff;
+            border-radius: 50%% 50%% 0 0 / 100%% 100%% 0 0;
+        }
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background-color: #4caf50;
+            border-radius: 50%%;
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
+            margin: 0 auto 15px;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+            font-size: 52px;
+            line-height: 80px;
+            color: white;
+            font-weight: bold;
+        }
+        .header h1 { 
+            font-size: 28px; 
+            margin: 0;
+            font-weight: 600;
+        }
+        .header p {
+            margin-top: 10px;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        .content { 
+            padding: 50px 30px 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .greeting strong {
+            color: #1976d2;
+            font-weight: 600;
+        }
+        .message {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+        .info-card { 
+            background: linear-gradient(135deg, #e8f5e9 0%%, #c8e6c9 100%%);
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 12px;
+            border-left: 5px solid #4caf50;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+        .info-card h3 {
+            color: #2e7d32;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .info-card h3::before {
+            content: '📋';
+            margin-right: 10px;
+            font-size: 24px;
+        }
+        .info-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(46, 125, 50, 0.1);
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #2e7d32;
+            min-width: 140px;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #1b5e20;
+            font-size: 14px;
+        }
+        .dispensers-section {
+            margin: 30px 0;
+        }
+        .dispensers-section h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .dispensers-section h3::before {
+            content: '🔧';
+            margin-right: 10px;
+            font-size: 26px;
+        }
+        .dispensers-table {
+            width: 100%%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .dispensers-table thead {
+            background: linear-gradient(135deg, #1e88e5 0%%, #1565c0 100%%);
+            color: white;
+        }
+        .dispensers-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .dispensers-table th:first-child {
+            text-align: center;
+            width: 80px;
+        }
+        .pdf-notice {
+            background: linear-gradient(135deg, #fff3e0 0%%, #ffe0b2 100%%);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid #ff9800;
+            margin: 25px 0;
+            display: flex;
+            align-items: center;
+        }
+        .pdf-notice::before {
+            content: '📎';
+            font-size: 32px;
+            margin-right: 15px;
+        }
+        .pdf-notice p {
+            margin: 0;
+            color: #e65100;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .cta-section {
+            background: linear-gradient(135deg, #e3f2fd 0%%, #bbdefb 100%%);
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 25px 0;
+        }
+        .cta-section p {
+            color: #1565c0;
+            font-size: 15px;
+            margin-bottom: 0;
+        }
+        .cta-section strong {
+            color: #0d47a1;
+            font-size: 16px;
+        }
+        .footer { 
+            background: linear-gradient(135deg, #37474f 0%%, #263238 100%%);
+            color: #b0bec5;
+            text-align: center; 
+            padding: 30px;
+        }
+        .footer-brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+        .footer p { 
+            font-size: 13px;
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+        .footer-note {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-wrapper { padding: 20px 10px; }
+            .content { padding: 30px 20px 20px; }
+            .header { padding: 30px 20px; }
+            .info-row { flex-direction: column; }
+            .info-label { min-width: auto; margin-bottom: 5px; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>✓ Instalación Completada</h1>
-        </div>
-        <div class="content">
-            <h2>¡Instalación Exitosa!</h2>
-            <p>Estimado/a <strong>%s</strong>,</p>
-            <p>Le informamos que la instalación de sus dispensers se ha completado exitosamente en <strong>%s</strong>.</p>
-            
-            <div class="info-box">
-                <strong>📋 Orden de Trabajo: %s</strong><br>
-                <strong>📍 Dirección:</strong> %s<br>
-                <strong>📅 Fecha:</strong> %s<br>
-                <strong>📦 Cantidad de dispensers:</strong> %d
+    <div class="email-wrapper">
+        <div class="container">
+            <div class="header">
+                <div class="success-icon">✓</div>
+                <h1>Instalación Completada</h1>
+                <p>Su servicio ya está en funcionamiento</p>
             </div>
+            
+            <div class="content">
+                <div class="greeting">
+                    Estimado/a <strong>%s</strong>,
+                </div>
+                
+                <div class="message">
+                    Nos complace informarle que la instalación de sus dispensers de agua 
+                    ha sido completada exitosamente en <strong>%s</strong>. 
+                    Nuestro equipo técnico ha verificado el correcto funcionamiento de todos los equipos.
+                </div>
+                
+                <div class="info-card">
+                    <h3>Detalles de su Instalación</h3>
+                    <div class="info-row">
+                        <span class="info-label">Orden de Trabajo:</span>
+                        <span class="info-value"><strong>%s</strong></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📍 Dirección:</span>
+                        <span class="info-value">%s</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📅 Fecha:</span>
+                        <span class="info-value">%s</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📦 Dispensers:</span>
+                        <span class="info-value"><strong>%d unidades</strong></span>
+                    </div>
+                </div>
 
-            <div class="dispensers-list">
-                <h3>Dispensers Instalados:</h3>
-                <ul>
-                    %s
-                </ul>
+                <div class="dispensers-section">
+                    <h3>Equipos Instalados</h3>
+                    <table class="dispensers-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Número de Serie</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            %s
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pdf-notice">
+                    <p>
+                        <strong>Documento Adjunto:</strong> Encontrará el comprobante de instalación en formato PDF 
+                        con todos los detalles técnicos y números de serie de los equipos instalados.
+                    </p>
+                </div>
+
+                <div class="cta-section">
+                    <p><strong>¡Gracias por elegirnos!</strong></p>
+                    <p>Ante cualquier consulta o inconveniente, no dude en contactarnos. 
+                    Estamos para servirle.</p>
+                </div>
             </div>
-
-            <p>Encontrará adjunto el documento PDF con los detalles completos de la orden de trabajo y los números de serie de los dispensers instalados.</p>
             
-            <p>Ante cualquier consulta, no dude en contactarnos.</p>
-            
-            <p><strong>Gracias por confiar en El Jumillano!</strong></p>
-        </div>
-        <div class="footer">
-            <p>Este es un email automático, por favor no responder.<br>
-            El Jumillano - Sistema de Gestión de Entregas</p>
+            <div class="footer">
+                <div class="footer-brand">El Jumillano</div>
+                <p>Sistema de Gestión de Entregas</p>
+                <p>Calidad y confianza en cada servicio</p>
+                <div class="footer-note">
+                    Este es un correo electrónico automático, por favor no responder.<br>
+                    Si necesita asistencia, contacte a nuestro servicio al cliente.
+                </div>
+            </div>
         </div>
     </div>
 </body>
@@ -412,6 +703,6 @@ func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delive
 		delivery.Address,
 		delivery.FechaAccion.Format("02/01/2006"),
 		len(dispensers),
-		dispensersList,
+		dispensersRows,
 	)
 }

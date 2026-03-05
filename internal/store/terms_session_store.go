@@ -11,6 +11,7 @@ import (
 
 type TermsSessionStore interface {
 	Create(ctx context.Context, session *models.TermsSession) error
+	GetByID(ctx context.Context, id int64) (*models.TermsSession, error)
 	FindByToken(ctx context.Context, token string) (*models.TermsSession, error)
 	FindBySessionID(ctx context.Context, sessionID string) (*models.TermsSession, error)
 	Update(ctx context.Context, session *models.TermsSession) error
@@ -32,6 +33,17 @@ func (s *termsSessionStore) Create(ctx context.Context, session *models.TermsSes
 		return fmt.Errorf("error creando sesión de términos: %w", err)
 	}
 	return nil
+}
+
+func (s *termsSessionStore) GetByID(ctx context.Context, id int64) (*models.TermsSession, error) {
+	var session models.TermsSession
+	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&session).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("sesión de términos no encontrada")
+		}
+		return nil, fmt.Errorf("error buscando sesión por ID: %w", err)
+	}
+	return &session, nil
 }
 
 func (s *termsSessionStore) FindByToken(ctx context.Context, token string) (*models.TermsSession, error) {
