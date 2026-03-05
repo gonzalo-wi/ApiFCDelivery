@@ -14,8 +14,8 @@ import (
 
 type MobileDeliveryService interface {
 	ValidateToken(ctx context.Context, req dto.ValidateTokenRequest) (*dto.ValidateTokenResponse, error)
-	ValidateDispenser(ctx context.Context, req dto.ValidateDispenserRequest) (*dto.ValidateDispenserResponse, error)
 	CompleteDelivery(ctx context.Context, req dto.MobileCompleteDeliveryRequest) (*dto.MobileCompleteDeliveryResponse, error)
+	SearchDeliveries(ctx context.Context, fechaAccion string, nroRto string) ([]dto.MobileDeliverySearchResponse, error)
 }
 
 type mobileDeliveryService struct {
@@ -30,25 +30,40 @@ func NewMobileDeliveryService(deliveryStore store.DeliveryStore, publisher *Rabb
 	}
 }
 
-// ValidateToken valida el token del cliente junto con nro_cta y fecha para mayor seguridad
-func (s *mobileDeliveryService) ValidateToken(ctx context.Context, req dto.ValidateTokenRequest) (*dto.ValidateTokenResponse, error) {
-	// Buscar delivery por token
-	deliveries, err := s.deliveryStore.FindAll(ctx)
+// SearchDeliveries busca deliveries por fecha (obligatorio) y opcionalmente por nro_rto
+func (s *mobileDeliveryService) SearchDeliveries(ctx context.Context, fechaAccion string, nroRto string) ([]dto.MobileDeliverySearchResponse, error) {
+	// Parsear y validar fecha
+	parsedDate, err := time.Parse("2006-01-02", fechaAccion)
 	if err != nil {
-		log.Error().Err(err).Msg("Error fetching deliveries")
-		return nil, fmt.Errorf("error validando token: %w", err)
+		return nil, fmt.Errorf("fecha inválida. Formato esperado: YYYY-MM-DD")
 	}
 
-	var foundDelivery *models.Delivery
+	// Buscar deliveries
+	deliveries, err := s.deliveryStore.FindByRto(ctx, nroRto, &parsedDate)
+	if err != nil {
+		return nil, fmt.Errorf("error buscando deliveries: %w", err)
+	}
+
+	// Mapear a respuesta simplificada
+	results := make([]dto.MobileDeliverySearchResponse, 0, len(deliveries))
 	for _, d := range deliveries {
-		// Validar token + nro_cta + fecha para mayor seguridad
-		if d.Token == req.Token &&
-			d.NroCta == req.NroCta &&
-			d.FechaAccion.Format("2006-01-02") == req.FechaAccion &&
-			d.Estado == models.Pendiente {
-			foundDelivery = &d
-			break
-		}
+		results = append(results, dto.MobileDeliverySearchResponse{
+			FechaAccion: d.FechaAccion.Format("2006-01-02"),
+			NroCta:      d.NroCta,
+			Token:       d.Token,
+		})
+	}
+
+	return results, nil
+}
+
+// ValidateToken valida el token del cliente junto con nro_cta y fecha para mayor seguridad
+func (s *mobileDeliveryService) ValidateToken(ctx context.Context, req dto.ValidateTokenRequest) (*dto.ValidateTokenResponse, error) {
+	// Buscar delivery directamente en BD con índices optimizados
+	foundDelivery, err := s.deliveryStore.FindByTokenAndFilters(ctx, req.Token, req.NroCta, req.FechaAccion, models.Pendiente)
+	if err != nil {
+		log.Error().Err(err).Msg("Error validating token")
+		return nil, fmt.Errorf("error validando token: %w", err)
 	}
 
 	if foundDelivery == nil {
@@ -58,7 +73,7 @@ func (s *mobileDeliveryService) ValidateToken(ctx context.Context, req dto.Valid
 		}, nil
 	}
 
-	// Construir respuesta
+	// Construir respuesta con información de items de dispensers
 	deliveryInfo := &dto.DeliveryInfoDTO{
 		ID:          foundDelivery.ID,
 		NroCta:      foundDelivery.NroCta,
@@ -68,14 +83,11 @@ func (s *mobileDeliveryService) ValidateToken(ctx context.Context, req dto.Valid
 		FechaAccion: foundDelivery.FechaAccion.String(),
 	}
 
-	dispensers := make([]dto.DispenserInfoDTO, 0, len(foundDelivery.Dispensers))
-	for _, d := range foundDelivery.Dispensers {
-		dispensers = append(dispensers, dto.DispenserInfoDTO{
-			ID:        d.ID,
-			Marca:     d.Marca,
-			NroSerie:  d.NroSerie,
-			Tipo:      string(d.Tipo),
-			Validated: false,
+	itemDispensers := make([]dto.ItemDispenserInfoDTO, 0, len(foundDelivery.ItemDispensers))
+	for _, item := range foundDelivery.ItemDispensers {
+		itemDispensers = append(itemDispensers, dto.ItemDispenserInfoDTO{
+			Tipo:     string(item.Tipo),
+			Cantidad: item.Cantidad,
 		})
 	}
 
@@ -86,57 +98,10 @@ func (s *mobileDeliveryService) ValidateToken(ctx context.Context, req dto.Valid
 		Msg("Token validated successfully")
 
 	return &dto.ValidateTokenResponse{
-		Valid:      true,
-		Message:    "Token válido",
-		Delivery:   deliveryInfo,
-		Dispensers: dispensers,
-	}, nil
-}
-
-// ValidateDispenser valida que un dispenser escaneado pertenezca al delivery
-func (s *mobileDeliveryService) ValidateDispenser(ctx context.Context, req dto.ValidateDispenserRequest) (*dto.ValidateDispenserResponse, error) {
-	delivery, err := s.deliveryStore.FindByID(ctx, req.DeliveryID)
-	if err != nil {
-		log.Error().Err(err).Int("delivery_id", req.DeliveryID).Msg("Error fetching delivery")
-		return nil, fmt.Errorf("error buscando delivery: %w", err)
-	}
-
-	// Buscar el dispenser en el delivery
-	var found *models.Dispenser
-	for _, d := range delivery.Dispensers {
-		if d.NroSerie == req.NroSerie {
-			found = &d
-			break
-		}
-	}
-
-	if found == nil {
-		log.Warn().
-			Int("delivery_id", req.DeliveryID).
-			Str("nro_serie", req.NroSerie).
-			Msg("Dispenser not found in delivery")
-
-		return &dto.ValidateDispenserResponse{
-			Valid:   false,
-			Message: "El dispenser no pertenece a esta entrega",
-		}, nil
-	}
-
-	log.Info().
-		Int("delivery_id", req.DeliveryID).
-		Str("nro_serie", req.NroSerie).
-		Msg("Dispenser validated successfully")
-
-	return &dto.ValidateDispenserResponse{
-		Valid:   true,
-		Message: "Dispenser válido",
-		Dispenser: &dto.DispenserInfoDTO{
-			ID:        found.ID,
-			Marca:     found.Marca,
-			NroSerie:  found.NroSerie,
-			Tipo:      string(found.Tipo),
-			Validated: true,
-		},
+		Valid:          true,
+		Message:        "Token válido",
+		Delivery:       deliveryInfo,
+		ItemDispensers: itemDispensers,
 	}, nil
 }
 
@@ -166,15 +131,34 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		return nil, fmt.Errorf("la entrega ya fue procesada (estado: %s)", delivery.Estado)
 	}
 
-	// 4. Validar que todos los dispensers fueron escaneados
-	if len(req.Validated) != len(delivery.Dispensers) {
+	// 4. Actualizar items de dispensers con lo efectivamente entregado
+	totalEntregado := uint(0)
+	newItemDispensers := make([]models.ItemDispenser, 0, len(req.ItemDispensers))
+	for _, item := range req.ItemDispensers {
+		tipo := models.TipoDispenser(item.Tipo)
+		if tipo != models.TipoDispenserPie && tipo != models.TipoDispenserMesada {
+			return nil, fmt.Errorf("tipo de dispenser inválido: %s", item.Tipo)
+		}
+
+		newItemDispensers = append(newItemDispensers, models.ItemDispenser{
+			Tipo:     tipo,
+			Cantidad: item.Cantidad,
+		})
+		totalEntregado += item.Cantidad
+	}
+
+	if totalEntregado == 0 {
 		log.Warn().
 			Int("delivery_id", req.DeliveryID).
-			Int("expected", len(delivery.Dispensers)).
-			Int("validated", len(req.Validated)).
-			Msg("Not all dispensers were validated")
-		return nil, fmt.Errorf("faltan dispensers por escanear (esperados: %d, validados: %d)", len(delivery.Dispensers), len(req.Validated))
+			Msg("No dispensers were delivered")
+		return nil, fmt.Errorf("debe entregar al menos un dispenser")
 	}
+
+	log.Info().
+		Int("delivery_id", req.DeliveryID).
+		Uint("expected", delivery.Cantidad).
+		Uint("delivered", totalEntregado).
+		Msg("Delivery completed with dispensers")
 
 	// 5. Actualizar datos del cliente desde la app móvil
 	if req.Name != "" {
@@ -187,8 +171,10 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		delivery.Locality = req.Locality
 	}
 
-	// 6. Actualizar estado del delivery
+	// 6. Actualizar items y estado
+	delivery.ItemDispensers = newItemDispensers
 	delivery.Estado = models.Completado
+	delivery.Cantidad = totalEntregado // Cantidad real entregada
 	delivery.UpdatedAt = time.Now()
 
 	if err := s.deliveryStore.Update(ctx, delivery); err != nil {
@@ -206,13 +192,16 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		Int("delivery_id", req.DeliveryID).
 		Msg("Delivery marked as completed")
 
-	// 7. Construir mensaje para RabbitMQ
-	dispensersMsg := make([]dto.DispenserMessage, 0, len(delivery.Dispensers))
-	for _, d := range delivery.Dispensers {
-		dispensersMsg = append(dispensersMsg, dto.DispenserMessage{
-			Marca:    d.Marca,
-			NroSerie: d.NroSerie,
-		})
+	// 7. Construir mensaje para RabbitMQ con items de dispensers
+	dispensersMsg := make([]dto.DispenserMessage, 0)
+	for _, item := range delivery.ItemDispensers {
+		// Crear un mensaje por cada dispenser del item
+		for i := uint(0); i < item.Cantidad; i++ {
+			dispensersMsg = append(dispensersMsg, dto.DispenserMessage{
+				Marca:    fmt.Sprintf("Dispenser-%s", item.Tipo),
+				NroSerie: fmt.Sprintf("%s-%d", item.Tipo, i+1),
+			})
+		}
 	}
 
 	workOrderMsg := dto.WorkOrderMessageDTO{
@@ -229,33 +218,36 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 	}
 
 	// 8. Publicar a RabbitMQ
+	workOrderQueued := false
 	err = s.publisher.PublishWorkOrder(ctx, workOrderMsg)
 	if err != nil {
 		log.Error().Err(err).Int("delivery_id", req.DeliveryID).Msg("Error publishing work order message")
+	} else {
+		workOrderQueued = true
+		log.Info().
+			Int("delivery_id", req.DeliveryID).
+			Msg("Work order message published successfully")
 	}
 
-	log.Info().
-		Int("delivery_id", req.DeliveryID).
-		Msg("Work order message published successfully")
-
-	// 9. Construir respuesta con todos los datos
-	dispensersResponse := make([]dto.DispenserCompletedDTO, 0, len(delivery.Dispensers))
-	for _, d := range delivery.Dispensers {
-		dispensersResponse = append(dispensersResponse, dto.DispenserCompletedDTO{
-			Marca:    d.Marca,
-			NroSerie: d.NroSerie,
+	// 9. Construir respuesta con items de dispensers entregados
+	itemDispensersResponse := make([]dto.ItemDispenserCompletedDTO, 0, len(delivery.ItemDispensers))
+	for _, item := range delivery.ItemDispensers {
+		itemDispensersResponse = append(itemDispensersResponse, dto.ItemDispenserCompletedDTO{
+			Tipo:     string(item.Tipo),
+			Cantidad: item.Cantidad,
 		})
 	}
 
 	return &dto.MobileCompleteDeliveryResponse{
-		NroCta:     delivery.NroCta,
-		Name:       delivery.Name,
-		Address:    delivery.Address,
-		Locality:   delivery.Locality,
-		NroRto:     delivery.NroRto,
-		CreatedAt:  delivery.CreatedAt.Format("2006-01-02"),
-		TipoAccion: string(delivery.TipoEntrega),
-		Token:      delivery.Token,
-		Dispensers: dispensersResponse,
+		NroCta:          delivery.NroCta,
+		Name:            delivery.Name,
+		Address:         delivery.Address,
+		Locality:        delivery.Locality,
+		NroRto:          delivery.NroRto,
+		CreatedAt:       delivery.CreatedAt.Format("2006-01-02"),
+		TipoAccion:      string(delivery.TipoEntrega),
+		Token:           delivery.Token,
+		ItemDispensers:  itemDispensersResponse,
+		WorkOrderQueued: workOrderQueued,
 	}, nil
 }

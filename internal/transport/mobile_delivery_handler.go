@@ -58,40 +58,6 @@ func (h *MobileDeliveryHandler) ValidateToken(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// ValidateDispenser godoc
-// @Summary Validar dispenser escaneado
-// @Description Valida que el dispenser escaneado pertenezca al delivery
-// @Tags Mobile
-// @Accept json
-// @Produce json
-// @Param request body dto.ValidateDispenserRequest true "Información del dispenser"
-// @Success 200 {object} dto.ValidateDispenserResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /api/mobile/validate-dispenser [post]
-func (h *MobileDeliveryHandler) ValidateDispenser(c *gin.Context) {
-	var req dto.ValidateDispenserRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Warn().Err(err).Msg("Invalid validate dispenser request")
-		if validationErrors := FormatValidationError(err); len(validationErrors) > 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput, "details": validationErrors})
-			return
-		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidInput, "details": err.Error()})
-		return
-	}
-
-	response, err := h.service.ValidateDispenser(c.Request.Context(), req)
-	if err != nil {
-		log.Error().Err(err).Msg("Error validating dispenser")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al validar el dispenser"})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
 // CompleteDelivery godoc
 // @Summary Completar entrega
 // @Description Marca la entrega como completada y publica mensaje para crear orden de trabajo
@@ -124,4 +90,35 @@ func (h *MobileDeliveryHandler) CompleteDelivery(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// SearchDeliveries godoc
+// @Summary Buscar deliveries por fecha y reparto
+// @Description Búsqueda de deliveries con filtros de fecha (obligatorio) y nro_rto (opcional)
+// @Tags Mobile
+// @Accept json
+// @Produce json
+// @Param fecha_accion query string true "Fecha de acción (YYYY-MM-DD)"
+// @Param nro_rto query string false "Número de reparto"
+// @Success 200 {array} dto.MobileDeliverySearchResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/mobile/deliveries/search [get]
+func (h *MobileDeliveryHandler) SearchDeliveries(c *gin.Context) {
+	fechaAccion := c.Query("fecha_accion")
+	nroRto := c.Query("nro_rto")
+
+	if fechaAccion == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "El parámetro fecha_accion es obligatorio"})
+		return
+	}
+
+	results, err := h.service.SearchDeliveries(c.Request.Context(), fechaAccion, nroRto)
+	if err != nil {
+		log.Error().Err(err).Msg("Error searching deliveries")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
 }

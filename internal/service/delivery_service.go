@@ -91,8 +91,8 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		return nil, err
 	}
 
-	// Crear dispensers placeholder
-	dispensers := createPlaceholderDispensers(req.NroRto, req.Tipos.P, req.Tipos.M)
+	// Crear items de dispensers
+	itemDispensers := createItemDispensers(req.Tipos.P, req.Tipos.M)
 
 	// Preparar SessionID como puntero (nil si está vacío)
 	var sessionIDPtr *string
@@ -102,15 +102,15 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 
 	// Crear la entrega
 	delivery := &models.Delivery{
-		NroCta:       req.NroCta,
-		NroRto:       req.NroRto,
-		Dispensers:   dispensers,
-		Cantidad:     cantidadTotal,
-		Estado:       models.Pendiente,
-		TipoEntrega:  req.TipoEntrega,
-		EntregadoPor: req.EntregadoPor,
-		SessionID:    sessionIDPtr,
-		FechaAccion:  fechaAccion,
+		NroCta:         req.NroCta,
+		NroRto:         req.NroRto,
+		ItemDispensers: itemDispensers,
+		Cantidad:       cantidadTotal,
+		Estado:         models.Pendiente,
+		TipoEntrega:    req.TipoEntrega,
+		EntregadoPor:   req.EntregadoPor,
+		SessionID:      sessionIDPtr,
+		FechaAccion:    fechaAccion,
 	}
 
 	// Generar token de 4 dígitos (thread-safe)

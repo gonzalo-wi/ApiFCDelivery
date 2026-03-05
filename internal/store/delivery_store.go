@@ -14,6 +14,7 @@ type DeliveryStore interface {
 	FindAll(ctx context.Context) ([]models.Delivery, error)
 	FindByID(ctx context.Context, id int) (*models.Delivery, error)
 	FindBySessionID(ctx context.Context, sessionID string) (*models.Delivery, error)
+	FindByTokenAndFilters(ctx context.Context, token, nroCta, fechaAccion string, estado models.EstadoEntrega) (*models.Delivery, error)
 	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
 	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
 	Create(ctx context.Context, delivery *models.Delivery) error
@@ -31,14 +32,14 @@ func NewDeliveryStore(db *gorm.DB) DeliveryStore {
 
 func (s *deliveryStore) FindAll(ctx context.Context) ([]models.Delivery, error) {
 	var deliveries []models.Delivery
-	if err := s.db.WithContext(ctx).Preload("Dispensers").Find(&deliveries).Error; err != nil {
+	if err := s.db.WithContext(ctx).Preload("ItemDispensers").Find(&deliveries).Error; err != nil {
 		return nil, fmt.Errorf(constants.ErrFindAllDeliveries, err)
 	}
 	return deliveries, nil
 }
 func (s *deliveryStore) FindByID(ctx context.Context, id int) (*models.Delivery, error) {
 	var delivery models.Delivery
-	if err := s.db.WithContext(ctx).Preload("Dispensers").First(&delivery, id).Error; err != nil {
+	if err := s.db.WithContext(ctx).Preload("ItemDispensers").First(&delivery, id).Error; err != nil {
 		return nil, fmt.Errorf(constants.ErrFindDeliveryByID, id, err)
 	}
 	return &delivery, nil
@@ -46,7 +47,7 @@ func (s *deliveryStore) FindByID(ctx context.Context, id int) (*models.Delivery,
 
 func (s *deliveryStore) FindBySessionID(ctx context.Context, sessionID string) (*models.Delivery, error) {
 	var delivery models.Delivery
-	if err := s.db.WithContext(ctx).Preload("Dispensers").Where("session_id = ?", sessionID).First(&delivery).Error; err != nil {
+	if err := s.db.WithContext(ctx).Preload("ItemDispensers").Where("session_id = ?", sessionID).First(&delivery).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -55,9 +56,37 @@ func (s *deliveryStore) FindBySessionID(ctx context.Context, sessionID string) (
 	return &delivery, nil
 }
 
+// FindByTokenAndFilters busca un delivery por token, nro_cta, fecha y estado (optimizado para validación móvil)
+func (s *deliveryStore) FindByTokenAndFilters(ctx context.Context, token, nroCta, fechaAccion string, estado models.EstadoEntrega) (*models.Delivery, error) {
+	var delivery models.Delivery
+
+	query := s.db.WithContext(ctx).
+		Preload("ItemDispensers").
+		Where("token = ? AND nro_cta = ? AND estado = ?", token, nroCta, estado)
+
+	if fechaAccion != "" {
+		// Parsear fecha y buscar en el rango del día
+		parsedDate, err := time.Parse("2006-01-02", fechaAccion)
+		if err == nil {
+			startOfDay := time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, parsedDate.Location())
+			endOfDay := startOfDay.Add(24 * time.Hour)
+			query = query.Where("fecha_accion >= ? AND fecha_accion < ?", startOfDay, endOfDay)
+		}
+	}
+
+	if err := query.First(&delivery).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil // No encontrado, no es un error
+		}
+		return nil, fmt.Errorf("error buscando delivery por token y filtros: %w", err)
+	}
+
+	return &delivery, nil
+}
+
 func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error) {
 	var deliveries []models.Delivery
-	query := s.db.WithContext(ctx).Preload("Dispensers")
+	query := s.db.WithContext(ctx).Preload("ItemDispensers")
 	if nroCta != "" {
 		query = query.Where("nro_cta = ?", nroCta)
 	}
@@ -74,7 +103,7 @@ func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaA
 }
 func (s *deliveryStore) FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error) {
 	var deliveries []models.Delivery
-	query := s.db.WithContext(ctx).Preload("Dispensers")
+	query := s.db.WithContext(ctx).Preload("ItemDispensers")
 	if nroRto != "" {
 		query = query.Where("nro_rto = ?", nroRto)
 	}

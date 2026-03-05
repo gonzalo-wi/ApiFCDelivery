@@ -1,0 +1,852 @@
+basePath: /api/v1
+definitions:
+  GoFrioCalor_internal_dto.DeliveryInfoDTO:
+    properties:
+      cantidad:
+        type: integer
+      fecha_accion:
+        type: string
+      id:
+        type: integer
+      nro_cta:
+        type: string
+      nro_rto:
+        type: string
+      tipo_entrega:
+        type: string
+    type: object
+  GoFrioCalor_internal_dto.DeliveryResponse:
+    properties:
+      cantidad:
+        type: integer
+      dispensers:
+        items:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.DispenserResponse'
+        type: array
+      entregado_por:
+        $ref: '#/definitions/GoFrioCalor_internal_models.EntregadoPor'
+      estado:
+        $ref: '#/definitions/GoFrioCalor_internal_models.EstadoEntrega'
+      fecha_accion:
+        type: string
+      id:
+        type: integer
+      nro_cta:
+        type: string
+      nro_rto:
+        type: string
+      session_id:
+        type: string
+      tipo_entrega:
+        $ref: '#/definitions/GoFrioCalor_internal_models.TipoEntrega'
+      tipos_dispensers:
+        $ref: '#/definitions/GoFrioCalor_internal_dto.DispenserTypesCount'
+      token:
+        type: string
+    type: object
+  GoFrioCalor_internal_dto.DispenserCompletedDTO:
+    properties:
+      marca:
+        type: string
+      nro_serie:
+        type: string
+    type: object
+  GoFrioCalor_internal_dto.DispenserInfoDTO:
+    properties:
+      id:
+        type: integer
+      marca:
+        type: string
+      nro_serie:
+        type: string
+      tipo:
+        type: string
+      validated:
+        type: boolean
+    type: object
+  GoFrioCalor_internal_dto.DispenserResponse:
+    properties:
+      marca:
+        type: string
+      nro_serie:
+        type: string
+      tipo:
+        $ref: '#/definitions/GoFrioCalor_internal_models.TipoDispenser'
+    type: object
+  GoFrioCalor_internal_dto.DispenserTypesCount:
+    properties:
+      M:
+        type: integer
+      P:
+        type: integer
+    type: object
+  GoFrioCalor_internal_dto.DispenserTypesQuantity:
+    properties:
+      M:
+        description: Dispensers de Mesada
+        type: integer
+      P:
+        description: Dispensers de Pie
+        type: integer
+    type: object
+  GoFrioCalor_internal_dto.InfobipDeliveryRequest:
+    properties:
+      entregado_por:
+        allOf:
+        - $ref: '#/definitions/GoFrioCalor_internal_models.EntregadoPor'
+        enum:
+        - Repartidor
+        - Tecnico
+      fecha_accion:
+        type: string
+      nro_cta:
+        maxLength: 50
+        minLength: 1
+        type: string
+      nro_rto:
+        maxLength: 50
+        minLength: 1
+        type: string
+      session_id:
+        minLength: 1
+        type: string
+      tipo_entrega:
+        allOf:
+        - $ref: '#/definitions/GoFrioCalor_internal_models.TipoEntrega'
+        enum:
+        - Instalacion
+        - Retiro
+        - Recambio
+      tipos:
+        $ref: '#/definitions/GoFrioCalor_internal_dto.DispenserTypesQuantity'
+    required:
+    - entregado_por
+    - nro_cta
+    - nro_rto
+    - session_id
+    - tipo_entrega
+    - tipos
+    type: object
+  GoFrioCalor_internal_dto.InfobipDeliveryResponse:
+    properties:
+      message:
+        type: string
+      token:
+        type: string
+    type: object
+  GoFrioCalor_internal_dto.MobileCompleteDeliveryRequest:
+    properties:
+      address:
+        type: string
+      delivery_id:
+        type: integer
+      locality:
+        type: string
+      name:
+        type: string
+      token:
+        type: string
+      validated_dispensers:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - delivery_id
+    - token
+    - validated_dispensers
+    type: object
+  GoFrioCalor_internal_dto.MobileCompleteDeliveryResponse:
+    properties:
+      address:
+        type: string
+      createdAt:
+        type: string
+      dispensers:
+        items:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.DispenserCompletedDTO'
+        type: array
+      locality:
+        type: string
+      name:
+        type: string
+      nroCta:
+        type: string
+      nroRto:
+        type: string
+      tipoAccion:
+        type: string
+      token:
+        type: string
+      work_order_queued:
+        type: boolean
+    type: object
+  GoFrioCalor_internal_dto.ValidateDispenserRequest:
+    properties:
+      delivery_id:
+        type: integer
+      nro_serie:
+        type: string
+    required:
+    - delivery_id
+    - nro_serie
+    type: object
+  GoFrioCalor_internal_dto.ValidateDispenserResponse:
+    properties:
+      dispenser:
+        $ref: '#/definitions/GoFrioCalor_internal_dto.DispenserInfoDTO'
+      message:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  GoFrioCalor_internal_dto.ValidateTokenRequest:
+    properties:
+      fecha_accion:
+        type: string
+      nro_cta:
+        type: string
+      token:
+        minLength: 4
+        type: string
+    required:
+    - fecha_accion
+    - nro_cta
+    - token
+    type: object
+  GoFrioCalor_internal_dto.ValidateTokenResponse:
+    properties:
+      delivery:
+        $ref: '#/definitions/GoFrioCalor_internal_dto.DeliveryInfoDTO'
+      dispensers:
+        items:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.DispenserInfoDTO'
+        type: array
+      message:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  GoFrioCalor_internal_dto.WorkOrderDispenserRequest:
+    properties:
+      marca:
+        maxLength: 50
+        minLength: 2
+        type: string
+      nro_serie:
+        maxLength: 100
+        minLength: 3
+        type: string
+    required:
+    - marca
+    - nro_serie
+    type: object
+  GoFrioCalor_internal_dto.WorkOrderRequest:
+    properties:
+      address:
+        maxLength: 300
+        minLength: 5
+        type: string
+      createdAt:
+        type: string
+      dispensers:
+        items:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.WorkOrderDispenserRequest'
+        type: array
+      locality:
+        maxLength: 100
+        minLength: 2
+        type: string
+      name:
+        maxLength: 200
+        minLength: 3
+        type: string
+      nroCta:
+        maxLength: 50
+        minLength: 1
+        type: string
+      nroRto:
+        maxLength: 50
+        minLength: 1
+        type: string
+      tipoAccion:
+        enum:
+        - Instalacion
+        - Retiro
+        - Recambio
+        type: string
+      token:
+        type: string
+    required:
+    - address
+    - createdAt
+    - locality
+    - name
+    - nroCta
+    - nroRto
+    - tipoAccion
+    type: object
+  GoFrioCalor_internal_models.CustomDate:
+    properties:
+      time.Time:
+        type: string
+    type: object
+  GoFrioCalor_internal_models.Delivery:
+    properties:
+      address:
+        type: string
+      cantidad:
+        maximum: 3
+        minimum: 1
+        type: integer
+      created_at:
+        type: string
+      dispensers:
+        items:
+          $ref: '#/definitions/GoFrioCalor_internal_models.Dispenser'
+        type: array
+      entregado_por:
+        allOf:
+        - $ref: '#/definitions/GoFrioCalor_internal_models.EntregadoPor'
+        enum:
+        - Repartidor
+        - Tecnico
+      estado:
+        allOf:
+        - $ref: '#/definitions/GoFrioCalor_internal_models.EstadoEntrega'
+        enum:
+        - Pendiente
+        - Completado
+        - Cancelado
+      fecha_accion:
+        $ref: '#/definitions/GoFrioCalor_internal_models.CustomDate'
+      id:
+        type: integer
+      locality:
+        type: string
+      name:
+        type: string
+      nro_cta:
+        maxLength: 50
+        minLength: 1
+        type: string
+      nro_rto:
+        maxLength: 50
+        minLength: 1
+        type: string
+      session_id:
+        type: string
+      terms_session_id:
+        type: integer
+      tipo_entrega:
+        allOf:
+        - $ref: '#/definitions/GoFrioCalor_internal_models.TipoEntrega'
+        enum:
+        - Instalacion
+        - Retiro
+        - Recambio
+      token:
+        type: string
+      updated_at:
+        type: string
+    required:
+    - cantidad
+    - entregado_por
+    - estado
+    - nro_cta
+    - nro_rto
+    - tipo_entrega
+    type: object
+  GoFrioCalor_internal_models.Dispenser:
+    properties:
+      created_at:
+        type: string
+      delivery_id:
+        type: integer
+      id:
+        type: integer
+      marca:
+        maxLength: 50
+        minLength: 2
+        type: string
+      nro_serie:
+        maxLength: 100
+        minLength: 3
+        type: string
+      tipo:
+        allOf:
+        - $ref: '#/definitions/GoFrioCalor_internal_models.TipoDispenser'
+        enum:
+        - A
+        - B
+        - C
+        - HELADERA
+        - P
+        - M
+      updated_at:
+        type: string
+    required:
+    - delivery_id
+    - marca
+    - nro_serie
+    - tipo
+    type: object
+  GoFrioCalor_internal_models.EntregadoPor:
+    enum:
+    - Repartidor
+    - Tecnico
+    type: string
+    x-enum-varnames:
+    - Repartidor
+    - Tecnico
+  GoFrioCalor_internal_models.EstadoEntrega:
+    enum:
+    - Pendiente
+    - Completado
+    - Cancelado
+    type: string
+    x-enum-varnames:
+    - Pendiente
+    - Completado
+    - Cancelado
+  GoFrioCalor_internal_models.TipoDispenser:
+    enum:
+    - A
+    - B
+    - C
+    - HELADERA
+    - P
+    - M
+    type: string
+    x-enum-comments:
+      TipoDispenserMesada: Dispenser de mesada
+      TipoDispenserPie: Dispenser de pie
+    x-enum-descriptions:
+    - ""
+    - ""
+    - ""
+    - ""
+    - Dispenser de pie
+    - Dispenser de mesada
+    x-enum-varnames:
+    - TipoDispenserA
+    - TipoDispenserB
+    - TipoDispenserC
+    - TipoDispenserHeladera
+    - TipoDispenserPie
+    - TipoDispenserMesada
+  GoFrioCalor_internal_models.TipoEntrega:
+    enum:
+    - Instalacion
+    - Retiro
+    - Recambio
+    type: string
+    x-enum-varnames:
+    - Instalacion
+    - Retiro
+    - Recambio
+host: localhost:8095
+info:
+  contact:
+    email: soporte@gofrocalor.com
+    name: Soporte GoFrioCalor
+  description: |-
+    API para gestión de entregas, dispensers y órdenes de trabajo de GoFrioCalor
+    Esta API permite gestionar el ciclo completo de entregas, desde la creación hasta la finalización,
+    incluyendo validación de términos y condiciones, integración con Infobip y flujos móviles.
+  license:
+    name: Propietario
+    url: https://gofrocalor.com/license
+  title: GoFrioCalor API
+  version: "1.0"
+paths:
+  /deliveries:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todas las entregas, opcionalmente filtradas por número
+        de cuenta y/o fecha
+      parameters:
+      - description: Número de cuenta
+        in: query
+        name: nro_cta
+        type: string
+      - description: 'Fecha de acción (formato: YYYY-MM-DD)'
+        in: query
+        name: fecha_accion
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/GoFrioCalor_internal_dto.DeliveryResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Listar entregas
+      tags:
+      - Deliveries
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva entrega en el sistema
+      parameters:
+      - description: Datos de la entrega
+        in: body
+        name: delivery
+        required: true
+        schema:
+          $ref: '#/definitions/GoFrioCalor_internal_models.Delivery'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/GoFrioCalor_internal_dto.DeliveryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Crear entrega
+      tags:
+      - Deliveries
+  /deliveries/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina una entrega del sistema
+      parameters:
+      - description: ID de la entrega
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Eliminar entrega
+      tags:
+      - Deliveries
+    get:
+      consumes:
+      - application/json
+      description: Obtiene los detalles de una entrega específica por su ID
+      parameters:
+      - description: ID de la entrega
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GoFrioCalor_internal_dto.DeliveryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Obtener entrega por ID
+      tags:
+      - Deliveries
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de una entrega existente
+      parameters:
+      - description: ID de la entrega
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados de la entrega
+        in: body
+        name: delivery
+        required: true
+        schema:
+          $ref: '#/definitions/GoFrioCalor_internal_models.Delivery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GoFrioCalor_internal_models.Delivery'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Actualizar entrega
+      tags:
+      - Deliveries
+  /deliveries/by-rto:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene entregas filtradas por número de RTO y opcionalmente por
+        fecha
+      parameters:
+      - description: Número de RTO
+        in: query
+        name: nro_rto
+        required: true
+        type: string
+      - description: 'Fecha de acción (formato: YYYY-MM-DD)'
+        in: query
+        name: fecha_accion
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/GoFrioCalor_internal_dto.DeliveryResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Listar entregas por RTO
+      tags:
+      - Deliveries
+  /deliveries/infobip:
+    post:
+      consumes:
+      - application/json
+      description: Crea una entrega desde el chatbot de Infobip con los datos proporcionados
+      parameters:
+      - description: Datos de la entrega desde Infobip
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.InfobipDeliveryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/GoFrioCalor_internal_dto.InfobipDeliveryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Crear entrega desde Infobip
+      tags:
+      - Deliveries
+  /mobile/complete-delivery:
+    post:
+      consumes:
+      - application/json
+      description: Marca la entrega como completada y publica mensaje para crear orden
+        de trabajo
+      parameters:
+      - description: Información de la entrega completada
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.MobileCompleteDeliveryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GoFrioCalor_internal_dto.MobileCompleteDeliveryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Completar entrega
+      tags:
+      - Mobile
+  /mobile/validate-dispenser:
+    post:
+      consumes:
+      - application/json
+      description: Valida que el dispenser escaneado pertenezca al delivery
+      parameters:
+      - description: Información del dispenser
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.ValidateDispenserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GoFrioCalor_internal_dto.ValidateDispenserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Validar dispenser escaneado
+      tags:
+      - Mobile
+  /mobile/validate-token:
+    post:
+      consumes:
+      - application/json
+      description: El repartidor valida el token proporcionado por el cliente
+      parameters:
+      - description: Token del cliente
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.ValidateTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GoFrioCalor_internal_dto.ValidateTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Validar token de entrega
+      tags:
+      - Mobile
+  /work-orders/generate:
+    post:
+      consumes:
+      - application/json
+      description: Genera un PDF con la orden de trabajo basada en los datos de la
+        entrega
+      parameters:
+      - description: Datos de la orden de trabajo
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GoFrioCalor_internal_dto.WorkOrderRequest'
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: PDF generado exitosamente
+          headers:
+            X-Order-Number:
+              description: Número de orden generado
+              type: string
+          schema:
+            type: file
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Error al generar PDF
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Generar orden de trabajo
+      tags:
+      - Work Orders
+schemes:
+- http
+- https
+swagger: "2.0"
+tags:
+- description: Operaciones relacionadas con entregas de dispensers
+  name: Deliveries
+- description: Flujo integrado de entregas con términos y condiciones
+  name: Deliveries with Terms
+- description: Endpoints para la aplicación móvil
+  name: Mobile
+- description: Gestión de dispensers
+  name: Dispensers
+- description: Generación de órdenes de trabajo en PDF
+  name: Work Orders
+- description: Gestión de sesiones de términos y condiciones
+  name: Terms
+- description: Health check del servicio
+  name: Health

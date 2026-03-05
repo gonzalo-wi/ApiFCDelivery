@@ -41,8 +41,8 @@ func (h *DeliveryWithTermsHandler) InitiateDelivery(c *gin.Context) {
 		return
 	}
 
-	// Validar cantidad de dispensers
-	if len(req.Dispensers) == 0 {
+	// Validar cantidad de items de dispensers
+	if len(req.ItemDispensers) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   constants.MsgValidationFailed,
 			"message": constants.MsgAtLeastOneDispenser,
@@ -50,7 +50,13 @@ func (h *DeliveryWithTermsHandler) InitiateDelivery(c *gin.Context) {
 		return
 	}
 
-	if uint(len(req.Dispensers)) != req.Cantidad {
+	// Calcular total de dispensers de todos los items
+	totalDispensers := uint(0)
+	for _, item := range req.ItemDispensers {
+		totalDispensers += item.Cantidad
+	}
+
+	if totalDispensers != req.Cantidad {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   constants.MsgValidationFailed,
 			"message": constants.MsgDispenserQuantityMismatch,

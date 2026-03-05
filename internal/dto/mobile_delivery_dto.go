@@ -10,10 +10,10 @@ type ValidateTokenRequest struct {
 
 // ValidateTokenResponse - Respuesta de validación de token
 type ValidateTokenResponse struct {
-	Valid      bool               `json:"valid"`
-	Message    string             `json:"message"`
-	Delivery   *DeliveryInfoDTO   `json:"delivery,omitempty"`
-	Dispensers []DispenserInfoDTO `json:"dispensers,omitempty"`
+	Valid          bool                   `json:"valid"`
+	Message        string                 `json:"message"`
+	Delivery       *DeliveryInfoDTO       `json:"delivery,omitempty"`
+	ItemDispensers []ItemDispenserInfoDTO `json:"item_dispensers,omitempty"`
 }
 
 // DeliveryInfoDTO - Información básica del delivery para el repartidor
@@ -26,54 +26,54 @@ type DeliveryInfoDTO struct {
 	FechaAccion string `json:"fecha_accion"`
 }
 
-// DispenserInfoDTO - Información de dispenser esperado
-type DispenserInfoDTO struct {
-	ID        int    `json:"id"`
-	Marca     string `json:"marca"`
-	NroSerie  string `json:"nro_serie"`
-	Tipo      string `json:"tipo"`
-	Validated bool   `json:"validated"`
+// ItemDispenserInfoDTO - Información de items de dispensers en la entrega
+type ItemDispenserInfoDTO struct {
+	Tipo     string `json:"tipo"`
+	Cantidad uint   `json:"cantidad"`
 }
 
-// ValidateDispenserRequest - Validar código de dispenser escaneado
-type ValidateDispenserRequest struct {
-	DeliveryID int    `json:"delivery_id" binding:"required"`
-	NroSerie   string `json:"nro_serie" binding:"required"`
-}
-
-// ValidateDispenserResponse - Respuesta de validación de dispenser
-type ValidateDispenserResponse struct {
-	Valid     bool              `json:"valid"`
-	Message   string            `json:"message"`
-	Dispenser *DispenserInfoDTO `json:"dispenser,omitempty"`
-}
+// Eliminadas las validaciones individuales de dispenser
+// Ya no se escanean dispensers individuales, solo se registran cantidades por tipo
 
 // MobileCompleteDeliveryRequest - Completar la entrega desde app móvil
 type MobileCompleteDeliveryRequest struct {
-	DeliveryID int      `json:"delivery_id" binding:"required"`
-	Name       string   `json:"name"`
-	Address    string   `json:"address"`
-	Locality   string   `json:"locality"`
-	Token      string   `json:"token" binding:"required"`
-	Validated  []string `json:"validated_dispensers" binding:"required,min=1"`
+	DeliveryID     int                      `json:"delivery_id" binding:"required"`
+	Name           string                   `json:"name"`
+	Address        string                   `json:"address"`
+	Locality       string                   `json:"locality"`
+	Token          string                   `json:"token" binding:"required"`
+	ItemDispensers []ItemDispenserDelivered `json:"item_dispensers" binding:"required,min=1,dive"`
 }
 
-// DispenserCompletedDTO - Información de dispenser en respuesta de completar entrega
-type DispenserCompletedDTO struct {
-	Marca    string `json:"marca"`
-	NroSerie string `json:"nro_serie"`
+// ItemDispenserDelivered - Items de dispensers efectivamente entregados
+type ItemDispenserDelivered struct {
+	Tipo     string `json:"tipo" binding:"required,oneof=P M"`
+	Cantidad uint   `json:"cantidad" binding:"required,min=1"`
+}
+
+// ItemDispenserCompletedDTO - Información de items de dispensers en respuesta de completar entrega
+type ItemDispenserCompletedDTO struct {
+	Tipo     string `json:"tipo"`
+	Cantidad uint   `json:"cantidad"`
 }
 
 // MobileCompleteDeliveryResponse - Respuesta al completar entrega desde app móvil
 type MobileCompleteDeliveryResponse struct {
-	NroCta          string                  `json:"nroCta"`
-	Name            string                  `json:"name"`
-	Address         string                  `json:"address"`
-	Locality        string                  `json:"locality"`
-	NroRto          string                  `json:"nroRto"`
-	CreatedAt       string                  `json:"createdAt"`
-	TipoAccion      string                  `json:"tipoAccion"`
-	Token           string                  `json:"token"`
-	Dispensers      []DispenserCompletedDTO `json:"dispensers"`
-	WorkOrderQueued bool                    `json:"work_order_queued"`
+	NroCta          string                      `json:"nroCta"`
+	Name            string                      `json:"name"`
+	Address         string                      `json:"address"`
+	Locality        string                      `json:"locality"`
+	NroRto          string                      `json:"nroRto"`
+	CreatedAt       string                      `json:"createdAt"`
+	TipoAccion      string                      `json:"tipoAccion"`
+	Token           string                      `json:"token"`
+	ItemDispensers  []ItemDispenserCompletedDTO `json:"item_dispensers"`
+	WorkOrderQueued bool                        `json:"work_order_queued"`
+}
+
+// MobileDeliverySearchResponse - Respuesta simplificada para búsqueda de deliveries (mobile)
+type MobileDeliverySearchResponse struct {
+	FechaAccion string `json:"fecha_accion"`
+	NroCta      string `json:"nro_cta"`
+	Token       string `json:"token"`
 }

@@ -110,13 +110,12 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 		return nil, err
 	}
 
-	// Crear dispensers
-	dispensers := make([]models.Dispenser, len(deliveryReq.Dispensers))
-	for i, d := range deliveryReq.Dispensers {
-		dispensers[i] = models.Dispenser{
-			Marca:    d.Marca,
-			NroSerie: d.NroSerie,
-			Tipo:     d.Tipo,
+	// Crear items de dispensers
+	itemDispensers := make([]models.ItemDispenser, len(deliveryReq.ItemDispensers))
+	for i, item := range deliveryReq.ItemDispensers {
+		itemDispensers[i] = models.ItemDispenser{
+			Tipo:     item.Tipo,
+			Cantidad: item.Cantidad,
 		}
 	}
 
@@ -124,7 +123,7 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 	delivery := &models.Delivery{
 		NroCta:         deliveryReq.NroCta,
 		NroRto:         deliveryReq.NroRto,
-		Dispensers:     dispensers,
+		ItemDispensers: itemDispensers,
 		Cantidad:       deliveryReq.Cantidad,
 		Estado:         models.Completado,
 		TipoEntrega:    deliveryReq.TipoEntrega,

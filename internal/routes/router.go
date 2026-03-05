@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *transport.DispenserHandler,
+func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 	workOrderHandler *transport.WorkOrderHandler, termsSessionHandler *transport.TermsSessionHandler,
 	deliveryWithTermsHandler *transport.DeliveryWithTermsHandler, mobileDeliveryHandler *transport.MobileDeliveryHandler, cfg *config.Config) *gin.Engine {
 	router := gin.New()
@@ -26,7 +26,7 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *t
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.GetCORSOrigins(),
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "x-api-key"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -40,10 +40,15 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler, dispenserHandler *t
 		})
 	})
 
-	api := router.Group("/api/v1")
+	// Rutas públicas de autenticación (sin middleware)
+	authHandler := transport.NewAuthHandler(cfg.AuthServiceURL)
+	RegisterAuthRoutes(router, authHandler)
+
+	// Grupo de rutas protegidas con autenticación JWT
+	api := router.Group("/dispenser-operations/api/v1")
+	api.Use(middleware.AuthMiddleware(cfg.AuthServiceURL))
 	{
 		RegisterDeliveryRoutes(api, deliveryHandler)
-		RegisterDispenserRoutes(api, dispenserHandler)
 		RegisterWorkOrderRoutes(api, workOrderHandler)
 		RegisterTermsRoutes(api, termsSessionHandler)
 		RegisterDeliveryWithTermsRoutes(api, deliveryWithTermsHandler)

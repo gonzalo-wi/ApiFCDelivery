@@ -40,28 +40,25 @@ func validateDispenserQuantity(cantidad uint) error {
 	return nil
 }
 
-// createPlaceholderDispensers crea dispensers placeholder que serán completados posteriormente
-func createPlaceholderDispensers(nroRto string, cantidadPie, cantidadMesada uint) []models.Dispenser {
-	cantidadTotal := cantidadPie + cantidadMesada
-	dispensers := make([]models.Dispenser, 0, cantidadTotal)
+// createItemDispensers crea items de dispensers basados en cantidades por tipo
+func createItemDispensers(cantidadPie, cantidadMesada uint) []models.ItemDispenser {
+	items := make([]models.ItemDispenser, 0, 2)
 
-	// Crear dispensers de Pie
-	for i := uint(0); i < cantidadPie; i++ {
-		dispensers = append(dispensers, models.Dispenser{
-			Marca:    constants.DISPENSER_MARCA_PENDIENTE,
-			NroSerie: fmt.Sprintf("P-%s-%d", nroRto, i+1),
+	// Agregar item de dispensers de Pie si hay cantidad
+	if cantidadPie > 0 {
+		items = append(items, models.ItemDispenser{
 			Tipo:     models.TipoDispenserPie,
+			Cantidad: cantidadPie,
 		})
 	}
 
-	// Crear dispensers de Mesada
-	for i := uint(0); i < cantidadMesada; i++ {
-		dispensers = append(dispensers, models.Dispenser{
-			Marca:    constants.DISPENSER_MARCA_PENDIENTE,
-			NroSerie: fmt.Sprintf("M-%s-%d", nroRto, i+1),
+	// Agregar item de dispensers de Mesada si hay cantidad
+	if cantidadMesada > 0 {
+		items = append(items, models.ItemDispenser{
 			Tipo:     models.TipoDispenserMesada,
+			Cantidad: cantidadMesada,
 		})
 	}
 
-	return dispensers
+	return items
 }

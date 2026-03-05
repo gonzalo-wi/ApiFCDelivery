@@ -10,7 +10,9 @@ func RegisterMobileRoutes(rg *gin.RouterGroup, handler *transport.MobileDelivery
 	mobile := rg.Group("/mobile")
 	{
 		mobile.POST("/validate-token", handler.ValidateToken)
-		mobile.POST("/validate-dispenser", handler.ValidateDispenser)
+
 		mobile.POST("/complete-delivery", handler.CompleteDelivery)
+
+		mobile.GET("/deliveries/search", handler.SearchDeliveries)
 	}
 }

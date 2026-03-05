@@ -30,7 +30,6 @@ func main() {
 
 	// Stores
 	deliveryStore := store.NewDeliveryStore(db)
-	dispenserStore := store.NewDispenserStore(db)
 	workOrderStore := store.NewWorkOrderStore(db)
 	termsSessionStore := store.NewTermsSessionStore(db)
 
@@ -50,9 +49,6 @@ func main() {
 	// Services
 	deliveryService := service.NewDeliveryService(deliveryStore)
 	deliveryHandler := transport.NewDeliveryHandler(deliveryService)
-
-	dispenserService := service.NewDispenserService(dispenserStore)
-	dispenserHandler := transport.NewDispenserHandler(dispenserService)
 
 	pdfService := service.NewPDFService(workOrderStore)
 	workOrderHandler := transport.NewWorkOrderHandler(pdfService)
@@ -100,7 +96,7 @@ func main() {
 		}
 	}
 
-	router := routes.SetupRouter(deliveryHandler, dispenserHandler, workOrderHandler, termsSessionHandler, deliveryWithTermsHandler, mobileDeliveryHandler, cfg)
+	router := routes.SetupRouter(deliveryHandler, workOrderHandler, termsSessionHandler, deliveryWithTermsHandler, mobileDeliveryHandler, cfg)
 
 	log.Info().Str("port", cfg.Port).Msgf(constants.MsgServerRunning, cfg.Port)
 

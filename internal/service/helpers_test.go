@@ -129,46 +129,41 @@ func TestValidateDispenserQuantity(t *testing.T) {
 	}
 }
 
-func TestCreatePlaceholderDispensers(t *testing.T) {
+func TestCreateItemDispensers(t *testing.T) {
 	tests := []struct {
 		name           string
-		nroRto         string
 		cantidadPie    uint
 		cantidadMesada uint
 		wantTotal      int
-		wantPie        int
-		wantMesada     int
+		wantPie        uint
+		wantMesada     uint
 	}{
 		{
 			name:           "Solo dispensers de pie",
-			nroRto:         "RTO001",
 			cantidadPie:    2,
 			cantidadMesada: 0,
-			wantTotal:      2,
+			wantTotal:      1,
 			wantPie:        2,
 			wantMesada:     0,
 		},
 		{
 			name:           "Solo dispensers de mesada",
-			nroRto:         "RTO002",
 			cantidadPie:    0,
 			cantidadMesada: 3,
-			wantTotal:      3,
+			wantTotal:      1,
 			wantPie:        0,
 			wantMesada:     3,
 		},
 		{
 			name:           "Mixto: pie y mesada",
-			nroRto:         "RTO003",
 			cantidadPie:    2,
 			cantidadMesada: 1,
-			wantTotal:      3,
+			wantTotal:      2,
 			wantPie:        2,
 			wantMesada:     1,
 		},
 		{
 			name:           "Sin dispensers",
-			nroRto:         "RTO004",
 			cantidadPie:    0,
 			cantidadMesada: 0,
 			wantTotal:      0,
@@ -179,62 +174,31 @@ func TestCreatePlaceholderDispensers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dispensers := createPlaceholderDispensers(tt.nroRto, tt.cantidadPie, tt.cantidadMesada)
+			items := createItemDispensers(tt.cantidadPie, tt.cantidadMesada)
 
-			// Verificar cantidad total
-			if len(dispensers) != tt.wantTotal {
-				t.Errorf("createPlaceholderDispensers() cantidad = %v, want %v", len(dispensers), tt.wantTotal)
+			// Verificar cantidad total de items
+			if len(items) != tt.wantTotal {
+				t.Errorf("createItemDispensers() cantidad items = %v, want %v", len(items), tt.wantTotal)
 			}
 
-			// Contar por tipo
-			countPie := 0
-			countMesada := 0
+			// Verificar cantidades por tipo
+			foundPie := uint(0)
+			foundMesada := uint(0)
 
-			for _, d := range dispensers {
-				// Verificar marca PENDIENTE
-				if d.Marca != constants.DISPENSER_MARCA_PENDIENTE {
-					t.Errorf("createPlaceholderDispensers() marca = %v, want %v", d.Marca, constants.DISPENSER_MARCA_PENDIENTE)
-				}
-
-				// Verificar que el número de serie contiene el nroRto
-				if d.NroSerie == "" {
-					t.Errorf("createPlaceholderDispensers() NroSerie vacío")
-				}
-
-				// Contar tipos
-				if d.Tipo == models.TipoDispenserPie {
-					countPie++
-				} else if d.Tipo == models.TipoDispenserMesada {
-					countMesada++
+			for _, item := range items {
+				if item.Tipo == models.TipoDispenserPie {
+					foundPie = item.Cantidad
+				} else if item.Tipo == models.TipoDispenserMesada {
+					foundMesada = item.Cantidad
 				}
 			}
 
-			// Verificar conteo por tipo
-			if countPie != tt.wantPie {
-				t.Errorf("createPlaceholderDispensers() cantidad Pie = %v, want %v", countPie, tt.wantPie)
+			if foundPie != tt.wantPie {
+				t.Errorf("createItemDispensers() cantidad Pie = %v, want %v", foundPie, tt.wantPie)
 			}
-			if countMesada != tt.wantMesada {
-				t.Errorf("createPlaceholderDispensers() cantidad Mesada = %v, want %v", countMesada, tt.wantMesada)
+			if foundMesada != tt.wantMesada {
+				t.Errorf("createItemDispensers() cantidad Mesada = %v, want %v", foundMesada, tt.wantMesada)
 			}
 		})
-	}
-}
-
-func TestCreatePlaceholderDispensersNroSerie(t *testing.T) {
-	nroRto := "RTO999"
-	dispensers := createPlaceholderDispensers(nroRto, 2, 2)
-
-	// Verificar que los números de serie sean únicos y tengan formato correcto
-	expectedSeries := []string{
-		"P-RTO999-1",
-		"P-RTO999-2",
-		"M-RTO999-1",
-		"M-RTO999-2",
-	}
-
-	for i, expected := range expectedSeries {
-		if dispensers[i].NroSerie != expected {
-			t.Errorf("Dispenser[%d].NroSerie = %v, want %v", i, dispensers[i].NroSerie, expected)
-		}
 	}
 }

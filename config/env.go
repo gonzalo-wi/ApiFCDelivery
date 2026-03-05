@@ -20,6 +20,7 @@ type Config struct {
 	InfobipAPIKey  string
 	AppBaseURL     string
 	TermsTTLHours  int
+	AuthServiceURL string
 }
 
 func LoadConfig() (*Config, error) {
@@ -39,17 +40,18 @@ func LoadConfig() (*Config, error) {
 		InfobipAPIKey:  os.Getenv("INFOBIP_API_KEY"),
 		AppBaseURL:     getEnvOrDefault("APP_BASE_URL", "http://localhost:5173"),
 		TermsTTLHours:  getEnvAsInt("TERMS_TTL_HOURS", 48),
+		AuthServiceURL: getEnvOrDefault("AUTH_SERVICE_URL", "http://192.168.0.55:8087"),
 	}
 
 	return config, nil
 }
 
 func (c *Config) GetDSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		c.DBUser,
-		c.DBPassword,
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		c.DBHost,
 		c.DBPort,
+		c.DBUser,
+		c.DBPassword,
 		c.DBName,
 	)
 }
