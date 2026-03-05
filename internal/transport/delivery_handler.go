@@ -13,11 +13,15 @@ import (
 )
 
 type DeliveryHandler struct {
-	service service.DeliveryService
+	service      service.DeliveryService
+	auditService *service.AuditService
 }
 
-func NewDeliveryHandler(service service.DeliveryService) *DeliveryHandler {
-	return &DeliveryHandler{service: service}
+func NewDeliveryHandler(service service.DeliveryService, auditService *service.AuditService) *DeliveryHandler {
+	return &DeliveryHandler{
+		service:      service,
+		auditService: auditService,
+	}
 }
 
 func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
@@ -86,6 +90,23 @@ func (h *DeliveryHandler) CreateDelivery(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Auditar creación de entrega
+	if h.auditService != nil {
+		h.auditService.LogDeliveryCreated(
+			ctx,
+			delivery.ID,
+			"api_client",
+			"postman",
+			&delivery,
+			map[string]interface{}{
+				"nro_cta":      delivery.NroCta,
+				"tipo_entrega": delivery.TipoEntrega,
+				"cantidad":     delivery.Cantidad,
+			},
+		)
+	}
+
 	response := dto.ToDeliveryResponse(&delivery)
 	c.JSON(http.StatusCreated, response)
 }
@@ -117,6 +138,21 @@ func (h *DeliveryHandler) UpdateDelivery(c *gin.Context) {
 		return
 	}
 
+	// Auditar actualización (sin before state por simplicidad)
+	if h.auditService != nil {
+		h.auditService.LogDeliveryUpdated(
+			ctx,
+			delivery.ID,
+			"api_client",
+			"postman",
+			nil, // before state opcional
+			&delivery,
+			map[string]interface{}{
+				"updated_fields": "delivery updated",
+			},
+		)
+	}
+
 	c.JSON(http.StatusOK, delivery)
 }
 
@@ -133,6 +169,21 @@ func (h *DeliveryHandler) DeleteDelivery(c *gin.Context) {
 	if err := h.service.Delete(ctx, id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Auditar eliminación
+	if h.auditService != nil {
+		h.auditService.LogDeliveryUpdated(
+			ctx,
+			id,
+			"api_client",
+			"postman",
+			nil,
+			nil,
+			map[string]interface{}{
+				"action": "deleted",
+			},
+		)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": constants.MsgDeliveryDeleted})

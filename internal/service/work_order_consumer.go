@@ -166,6 +166,7 @@ func (c *WorkOrderConsumer) createWorkOrder(ctx context.Context, msg dto.WorkOrd
 		NroCta:      msg.NroCta,
 		NroRto:      msg.NroRto,
 		Name:        msg.Name,
+		Email:       msg.Email,
 		Address:     msg.Address,
 		Localidad:   msg.Locality,
 		TipoAccion:  msg.TipoAccion,

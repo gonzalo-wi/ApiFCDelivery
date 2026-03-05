@@ -4,6 +4,7 @@ package dto
 type WorkOrderMessageDTO struct {
 	NroCta     string             `json:"nroCta"`
 	Name       string             `json:"name"`
+	Email      string             `json:"email"`
 	Address    string             `json:"address"`
 	Locality   string             `json:"locality"`
 	NroRto     string             `json:"nroRto"`
@@ -16,6 +17,5 @@ type WorkOrderMessageDTO struct {
 
 // DispenserMessage - Información de dispenser en el mensaje
 type DispenserMessage struct {
-	Marca    string `json:"marca"`
 	NroSerie string `json:"nro_serie"`
 }

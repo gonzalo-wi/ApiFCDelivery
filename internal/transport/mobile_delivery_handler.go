@@ -12,11 +12,15 @@ import (
 )
 
 type MobileDeliveryHandler struct {
-	service service.MobileDeliveryService
+	service      service.MobileDeliveryService
+	auditService *service.AuditService
 }
 
-func NewMobileDeliveryHandler(service service.MobileDeliveryService) *MobileDeliveryHandler {
-	return &MobileDeliveryHandler{service: service}
+func NewMobileDeliveryHandler(service service.MobileDeliveryService, auditService *service.AuditService) *MobileDeliveryHandler {
+	return &MobileDeliveryHandler{
+		service:      service,
+		auditService: auditService,
+	}
 }
 
 // ValidateToken godoc
@@ -48,6 +52,17 @@ func (h *MobileDeliveryHandler) ValidateToken(c *gin.Context) {
 		log.Error().Err(err).Msg("Error validating token")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al validar el token"})
 		return
+	}
+
+	// Auditar validación de token
+	if h.auditService != nil {
+		h.auditService.LogTokenValidated(
+			c.Request.Context(),
+			req.Token,
+			response.Valid,
+			c.ClientIP(),
+			c.Request.URL.Path,
+		)
 	}
 
 	if !response.Valid {
@@ -87,6 +102,24 @@ func (h *MobileDeliveryHandler) CompleteDelivery(c *gin.Context) {
 		log.Error().Err(err).Msg("Error completing delivery")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Auditar completar entrega
+	if h.auditService != nil {
+		metadata := map[string]interface{}{
+			"validated_dispensers": req.ValidatedDispensers,
+			"dispensers_count":     len(req.ValidatedDispensers),
+			"work_order_queued":    response.WorkOrderQueued,
+		}
+		h.auditService.LogDeliveryUpdated(
+			c.Request.Context(),
+			req.DeliveryID,
+			"mobile_app",
+			req.Token,
+			nil, // before state (opcional)
+			response,
+			metadata,
+		)
 	}
 
 	c.JSON(http.StatusOK, response)

@@ -142,7 +142,6 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 		pdf.SetTextColor(255, 255, 255)
 		pdf.SetFont("Arial", "B", 10)
 		pdf.CellFormat(20, 8, constants.PDFTableItem, "1", 0, "C", true, 0, "")
-		pdf.CellFormat(60, 8, constants.PDFTableBrand, "1", 0, "C", true, 0, "")
 		pdf.CellFormat(0, 8, constants.PDFTableSerialNumber, "1", 1, "C", true, 0, "")
 
 		pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
@@ -155,7 +154,6 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 				pdf.SetFillColor(255, 255, 255)
 			}
 			pdf.CellFormat(20, 7, fmt.Sprintf("%d", i+1), "1", 0, "C", fill, 0, "")
-			pdf.CellFormat(60, 7, dispenser.Marca, "1", 0, "L", fill, 0, "")
 			pdf.CellFormat(0, 7, dispenser.NroSerie, "1", 1, "L", fill, 0, "")
 			fill = !fill
 		}

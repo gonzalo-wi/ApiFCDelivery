@@ -28,10 +28,17 @@ func main() {
 
 	log.Info().Msg(constants.MsgDBConnectedSuccess)
 
+	// Create SQLX connection for audit store
+	sqlxDB, err := config.NewSQLXDatabase(cfg.GetDSN())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to database with sqlx")
+	}
+
 	// Stores
 	deliveryStore := store.NewDeliveryStore(db)
 	workOrderStore := store.NewWorkOrderStore(db)
 	termsSessionStore := store.NewTermsSessionStore(db)
+	auditEventStore := store.NewAuditEventStore(sqlxDB)
 
 	// RabbitMQ Configuration
 	rabbitConfig := config.LoadRabbitMQConfig()
@@ -46,17 +53,42 @@ func main() {
 		log.Info().Msg("RabbitMQ Publisher initialized successfully")
 	}
 
-	// Services
-	deliveryService := service.NewDeliveryService(deliveryStore)
-	deliveryHandler := transport.NewDeliveryHandler(deliveryService)
-
-	pdfService := service.NewPDFService(workOrderStore)
-	workOrderHandler := transport.NewWorkOrderHandler(pdfService)
+	// Audit Service
+	auditService := service.NewAuditService(auditEventStore)
+	auditHandler := transport.NewAuditHandler(auditService)
 
 	// Términos y Condiciones con Infobip
 	infobipClient := service.NewInfobipClient(cfg.InfobipBaseURL, cfg.InfobipAPIKey)
 	termsSessionService := service.NewTermsSessionService(termsSessionStore, infobipClient)
 	termsSessionHandler := transport.NewTermsSessionHandler(termsSessionService, cfg.AppBaseURL, cfg.TermsTTLHours)
+
+	// Inicializar email service real o mock según configuración
+	var emailService service.EmailService
+	emailService, err = service.NewSMTPEmailService(
+		cfg.EmailHost,
+		cfg.EmailPort,
+		cfg.EmailFrom,
+		cfg.EmailPassword,
+		cfg.EmailTo,
+	)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize SMTP email service, using mock instead")
+		emailService = service.NewMockEmailService()
+	} else {
+		log.Info().
+			Str("host", cfg.EmailHost).
+			Str("port", cfg.EmailPort).
+			Str("from", cfg.EmailFrom).
+			Str("to", cfg.EmailTo).
+			Msg("SMTP Email Service initialized successfully")
+	}
+
+	// Services
+	deliveryService := service.NewDeliveryServiceWithEmail(deliveryStore, emailService)
+	deliveryHandler := transport.NewDeliveryHandler(deliveryService, auditService)
+
+	pdfService := service.NewPDFService(workOrderStore)
+	workOrderHandler := transport.NewWorkOrderHandler(pdfService)
 
 	// Flujo integrado: Entregas con Términos y Condiciones
 	deliveryWithTermsService := service.NewDeliveryWithTermsService(deliveryStore, termsSessionStore, termsSessionService)
@@ -65,22 +97,21 @@ func main() {
 	// Mobile Delivery - Validación y Completar Entregas
 	var mobileDeliveryHandler *transport.MobileDeliveryHandler
 	if rabbitPublisher != nil {
-		mobileDeliveryService := service.NewMobileDeliveryService(deliveryStore, rabbitPublisher)
-		mobileDeliveryHandler = transport.NewMobileDeliveryHandler(mobileDeliveryService)
-		log.Info().Msg("Mobile Delivery Service initialized")
+		mobileDeliveryService := service.NewMobileDeliveryServiceWithServices(deliveryStore, rabbitPublisher, pdfService, emailService)
+		mobileDeliveryHandler = transport.NewMobileDeliveryHandler(mobileDeliveryService, auditService)
+		log.Info().Msg("Mobile Delivery Service initialized with PDF and Email services")
 	}
 
 	// RabbitMQ Consumer para Work Orders
 	if rabbitPublisher != nil {
 		mockPDFService := service.NewMockPDFService()
-		mockEmailService := service.NewMockEmailService()
 
 		consumer, err := service.NewWorkOrderConsumer(
 			rabbitConfig,
 			workOrderStore,
 			deliveryStore,
 			mockPDFService,
-			mockEmailService,
+			emailService,
 		)
 
 		if err != nil {
@@ -96,7 +127,7 @@ func main() {
 		}
 	}
 
-	router := routes.SetupRouter(deliveryHandler, workOrderHandler, termsSessionHandler, deliveryWithTermsHandler, mobileDeliveryHandler, cfg)
+	router := routes.SetupRouter(deliveryHandler, workOrderHandler, termsSessionHandler, deliveryWithTermsHandler, mobileDeliveryHandler, auditHandler, cfg)
 
 	log.Info().Str("port", cfg.Port).Msgf(constants.MsgServerRunning, cfg.Port)
 

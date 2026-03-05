@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type DeliveryService interface {
@@ -23,11 +25,22 @@ type DeliveryService interface {
 	CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, error)
 }
 type deliveryService struct {
-	store store.DeliveryStore
+	store        store.DeliveryStore
+	emailService EmailService
 }
 
 func NewDeliveryService(store store.DeliveryStore) DeliveryService {
-	return &deliveryService{store: store}
+	return &deliveryService{
+		store:        store,
+		emailService: nil,
+	}
+}
+
+func NewDeliveryServiceWithEmail(store store.DeliveryStore, emailService EmailService) DeliveryService {
+	return &deliveryService{
+		store:        store,
+		emailService: emailService,
+	}
 }
 
 func (s *deliveryService) FindAll(ctx context.Context) ([]models.Delivery, error) {
@@ -104,6 +117,7 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 	delivery := &models.Delivery{
 		NroCta:         req.NroCta,
 		NroRto:         req.NroRto,
+		Email:          req.Email,
 		ItemDispensers: itemDispensers,
 		Cantidad:       cantidadTotal,
 		Estado:         models.Pendiente,
@@ -121,6 +135,8 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		return nil, fmt.Errorf("error creando entrega: %w", err)
 	}
 
+	// NO enviar email aquí, se enviará cuando se complete la entrega
+
 	return delivery, nil
 }
 
@@ -133,4 +149,65 @@ func (s *deliveryService) generateToken() string {
 	}
 	token := int(n.Int64()) + constants.TOKEN_MIN
 	return fmt.Sprintf("%04d", token)
+}
+
+// sendDeliveryConfirmationEmail envía un email de confirmación de entrega
+func (s *deliveryService) sendDeliveryConfirmationEmail(ctx context.Context, delivery *models.Delivery) {
+	subject := fmt.Sprintf("Confirmación de Entrega - Token: %s", delivery.Token)
+
+	htmlBody := fmt.Sprintf(`
+		<html>
+		<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+			<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+				<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+					✅ Confirmación de Entrega Programada
+				</h2>
+				
+				<p>Estimado cliente,</p>
+				
+				<p>Su entrega ha sido programada exitosamente. A continuación los detalles:</p>
+				
+				<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+					<p style="margin: 5px 0;"><strong>🔑 Token de Validación:</strong> <span style="font-size: 24px; color: #e74c3c; font-weight: bold;">%s</span></p>
+					<p style="margin: 5px 0;"><strong>📦 Cuenta:</strong> %s</p>
+					<p style="margin: 5px 0;"><strong>🚚 Ruta:</strong> %s</p>
+					<p style="margin: 5px 0;"><strong>📅 Fecha:</strong> %s</p>
+					<p style="margin: 5px 0;"><strong>📊 Cantidad de Dispensers:</strong> %d</p>
+					<p style="margin: 5px 0;"><strong>🔧 Tipo de Entrega:</strong> %s</p>
+				</div>
+				
+				<div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+					<p style="margin: 0;"><strong>⚠️ Importante:</strong> Tenga este token a mano cuando llegue el repartidor. Será necesario para validar y completar la entrega.</p>
+				</div>
+				
+				<p style="color: #7f8c8d; font-size: 12px; margin-top: 30px; border-top: 1px solid #ecf0f1; padding-top: 15px;">
+					Este es un email automático. Por favor no responda a este mensaje.<br>
+					<strong>El Jumillano - Sistema de Gestión de Entregas</strong>
+				</p>
+			</div>
+		</body>
+		</html>
+	`,
+		delivery.Token,
+		delivery.NroCta,
+		delivery.NroRto,
+		delivery.FechaAccion.Format("02/01/2006"),
+		delivery.Cantidad,
+		string(delivery.TipoEntrega),
+	)
+
+	err := s.emailService.SendHTMLEmail(ctx, delivery.Email, subject, htmlBody)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Int("delivery_id", delivery.ID).
+			Str("email", delivery.Email).
+			Msg("Error enviando email de confirmación")
+	} else {
+		log.Info().
+			Int("delivery_id", delivery.ID).
+			Str("email", delivery.Email).
+			Str("token", delivery.Token).
+			Msg("Email de confirmación enviado exitosamente")
+	}
 }

@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -31,5 +33,21 @@ func NewDatabase(dsn string) (*gorm.DB, error) {
 	}
 
 	log.Println(constants.MsgDatabaseConnected)
+	return db, nil
+}
+
+// NewSQLXDatabase crea una conexión de base de datos usando sqlx (para audit store)
+func NewSQLXDatabase(dsn string) (*sqlx.DB, error) {
+	db, err := sqlx.Connect("postgres", dsn)
+	if err != nil {
+		log.Println(constants.MsgDatabaseConnectionError, err)
+		return nil, err
+	}
+
+	db.SetMaxIdleConns(constants.MAX_IDLE_CONNS)
+	db.SetMaxOpenConns(constants.MAX_OPEN_CONNS)
+	db.SetConnMaxLifetime(time.Hour)
+
+	log.Println("SQLX database connection successful")
 	return db, nil
 }

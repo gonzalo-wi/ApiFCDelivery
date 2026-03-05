@@ -13,6 +13,5 @@ type WorkOrderRequest struct {
 }
 
 type WorkOrderDispenserRequest struct {
-	Marca    string `json:"marca" binding:"required,min=2,max=50"`
 	NroSerie string `json:"nro_serie" binding:"required,min=3,max=100"`
 }

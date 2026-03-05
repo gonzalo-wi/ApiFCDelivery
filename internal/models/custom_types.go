@@ -42,3 +42,32 @@ func (cd *CustomDate) Scan(value interface{}) error {
 
 	return nil
 }
+
+// StringArray es un tipo personalizado para manejar arrays de strings en PostgreSQL (JSONB)
+type StringArray []string
+
+func (sa StringArray) Value() (driver.Value, error) {
+	if sa == nil {
+		return nil, nil
+	}
+	return json.Marshal(sa)
+}
+
+func (sa *StringArray) Scan(value interface{}) error {
+	if value == nil {
+		*sa = nil
+		return nil
+	}
+
+	var data []byte
+	switch v := value.(type) {
+	case []byte:
+		data = v
+	case string:
+		data = []byte(v)
+	default:
+		return nil
+	}
+
+	return json.Unmarshal(data, sa)
+}

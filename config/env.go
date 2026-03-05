@@ -21,6 +21,11 @@ type Config struct {
 	AppBaseURL     string
 	TermsTTLHours  int
 	AuthServiceURL string
+	EmailHost      string
+	EmailPort      string
+	EmailFrom      string
+	EmailPassword  string
+	EmailTo        string
 }
 
 func LoadConfig() (*Config, error) {
@@ -41,6 +46,11 @@ func LoadConfig() (*Config, error) {
 		AppBaseURL:     getEnvOrDefault("APP_BASE_URL", "http://localhost:5173"),
 		TermsTTLHours:  getEnvAsInt("TERMS_TTL_HOURS", 48),
 		AuthServiceURL: getEnvOrDefault("AUTH_SERVICE_URL", "http://192.168.0.55:8087"),
+		EmailHost:      getEnvOrDefault("EMAIL_HOST", "smtp.gmail.com"),
+		EmailPort:      getEnvOrDefault("EMAIL_PORT", "587"),
+		EmailFrom:      os.Getenv("EMAIL_FROM"),
+		EmailPassword:  os.Getenv("EMAIL_PASSWORD"),
+		EmailTo:        os.Getenv("EMAIL_TO"),
 	}
 
 	return config, nil
