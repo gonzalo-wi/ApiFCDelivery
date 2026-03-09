@@ -82,7 +82,45 @@ Content-Type: application/json
 
 ## 🚀 Endpoints Mobile (Simulan la App del Repartidor)
 
-### 3️⃣ POST `/api/v1/mobile/validate-token` - Validar Token del Cliente
+### 3️⃣ GET `/api/v1/mobile/deliveries/search` - Buscar Deliveries (OPCIONAL)
+
+**💡 Útil para proveedores externos:** Este endpoint permite buscar deliveries por fecha y reparto antes de iniciar el flujo. Devuelve el **ID del delivery** necesario para completar la entrega posteriormente.
+
+**Request:**
+```http
+GET http://localhost:8080/api/v1/mobile/deliveries/search?fecha_accion=2025-11-12&nro_rto=9
+```
+
+**Parámetros:**
+- `fecha_accion` (requerido): Fecha en formato YYYY-MM-DD
+- `nro_rto` (opcional): Número de reparto para filtrar
+
+**Respuesta Exitosa:**
+```json
+[
+  {
+    "id": 24,                     👈 ID necesario para complete-delivery
+    "fecha_accion": "2025-11-12",
+    "nro_cta": "12345",
+    "token": "2780"
+  },
+  {
+    "id": 25,
+    "fecha_accion": "2025-11-12",
+    "nro_cta": "67890",
+    "token": "3891"
+  }
+]
+```
+
+**Respuesta si no hay resultados:**
+```json
+[]
+```
+
+---
+
+### 4️⃣ POST `/api/v1/mobile/validate-token` - Validar Token del Cliente
 
 El repartidor le pide al cliente: **token + número de cuenta + fecha de entrega** para validar la entrega.
 
@@ -140,7 +178,7 @@ Content-Type: application/json
 
 ---
 
-### 4️⃣ POST `/api/v1/mobile/validate-dispenser` - Validar Dispenser Escaneado
+### 5️⃣ POST `/api/v1/mobile/validate-dispenser` - Validar Dispenser Escaneado
 
 El repartidor escanea cada dispenser (código QR/barras) y valida que pertenezca al delivery.
 
@@ -191,7 +229,7 @@ Content-Type: application/json
 
 ---
 
-### 5️⃣ POST `/api/v1/mobile/complete-delivery` - Completar Entrega
+### 6️⃣ POST `/api/v1/mobile/complete-delivery` - Completar Entrega
 
 Una vez validados todos los dispensers, el repartidor completa la entrega.
 

@@ -64,6 +64,7 @@ func (s *mobileDeliveryService) SearchDeliveries(ctx context.Context, fechaAccio
 	results := make([]dto.MobileDeliverySearchResponse, 0, len(deliveries))
 	for _, d := range deliveries {
 		results = append(results, dto.MobileDeliverySearchResponse{
+			ID:          d.ID,
 			FechaAccion: d.FechaAccion.Format("2006-01-02"),
 			NroCta:      d.NroCta,
 			Token:       d.Token,

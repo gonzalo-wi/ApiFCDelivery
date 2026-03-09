@@ -76,6 +76,7 @@ type MobileCompleteDeliveryResponse struct {
 
 // MobileDeliverySearchResponse - Respuesta simplificada para búsqueda de deliveries (mobile)
 type MobileDeliverySearchResponse struct {
+	ID          int    `json:"id"`
 	FechaAccion string `json:"fecha_accion"`
 	NroCta      string `json:"nro_cta"`
 	Token       string `json:"token"`
