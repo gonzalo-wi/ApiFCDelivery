@@ -216,12 +216,6 @@ definitions:
     type: object
   GoFrioCalor_internal_dto.ValidateTokenResponse:
     properties:
-      delivery:
-        $ref: '#/definitions/GoFrioCalor_internal_dto.DeliveryInfoDTO'
-      dispensers:
-        items:
-          $ref: '#/definitions/GoFrioCalor_internal_dto.DispenserInfoDTO'
-        type: array
       message:
         type: string
       valid:

@@ -896,15 +896,6 @@ const docTemplate = `{
         "GoFrioCalor_internal_dto.ValidateTokenResponse": {
             "type": "object",
             "properties": {
-                "delivery": {
-                    "$ref": "#/definitions/GoFrioCalor_internal_dto.DeliveryInfoDTO"
-                },
-                "dispensers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/GoFrioCalor_internal_dto.DispenserInfoDTO"
-                    }
-                },
                 "message": {
                     "type": "string"
                 },

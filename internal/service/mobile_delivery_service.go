@@ -90,24 +90,6 @@ func (s *mobileDeliveryService) ValidateToken(ctx context.Context, req dto.Valid
 		}, nil
 	}
 
-	// Construir respuesta con información de items de dispensers
-	deliveryInfo := &dto.DeliveryInfoDTO{
-		ID:          foundDelivery.ID,
-		NroCta:      foundDelivery.NroCta,
-		NroRto:      foundDelivery.NroRto,
-		Cantidad:    foundDelivery.Cantidad,
-		TipoEntrega: string(foundDelivery.TipoEntrega),
-		FechaAccion: foundDelivery.FechaAccion.String(),
-	}
-
-	itemDispensers := make([]dto.ItemDispenserInfoDTO, 0, len(foundDelivery.ItemDispensers))
-	for _, item := range foundDelivery.ItemDispensers {
-		itemDispensers = append(itemDispensers, dto.ItemDispenserInfoDTO{
-			Tipo:     string(item.Tipo),
-			Cantidad: item.Cantidad,
-		})
-	}
-
 	log.Info().
 		Int("delivery_id", foundDelivery.ID).
 		Str("token", req.Token).
@@ -115,10 +97,8 @@ func (s *mobileDeliveryService) ValidateToken(ctx context.Context, req dto.Valid
 		Msg("Token validated successfully")
 
 	return &dto.ValidateTokenResponse{
-		Valid:          true,
-		Message:        "Token válido",
-		Delivery:       deliveryInfo,
-		ItemDispensers: itemDispensers,
+		Valid:   true,
+		Message: "Token válido",
 	}, nil
 }
 

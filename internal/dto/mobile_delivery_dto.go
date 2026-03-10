@@ -10,10 +10,8 @@ type ValidateTokenRequest struct {
 
 // ValidateTokenResponse - Respuesta de validación de token
 type ValidateTokenResponse struct {
-	Valid          bool                   `json:"valid"`
-	Message        string                 `json:"message"`
-	Delivery       *DeliveryInfoDTO       `json:"delivery,omitempty"`
-	ItemDispensers []ItemDispenserInfoDTO `json:"item_dispensers,omitempty"`
+	Valid   bool   `json:"valid"`
+	Message string `json:"message"`
 }
 
 // DeliveryInfoDTO - Información básica del delivery para el repartidor
