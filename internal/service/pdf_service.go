@@ -264,3 +264,183 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 
 	return buf.Bytes(), orderNumber, nil
 }
+
+// ========== WorkOrderPDFGenerator Implementation ==========
+
+// RealWorkOrderPDFGenerator implementación real para el consumer de RabbitMQ
+type RealWorkOrderPDFGenerator struct{}
+
+func NewRealWorkOrderPDFGenerator() WorkOrderPDFGenerator {
+	return &RealWorkOrderPDFGenerator{}
+}
+
+// GenerateWorkOrderPDF genera un PDF y lo guarda en disco (para el consumer)
+func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, dispensers []dto.DispenserMessage) (string, error) {
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
+	pdf.SetMargins(15, 15, 15)
+
+	colorPrimary := []int{41, 128, 185}
+	colorText := []int{52, 73, 94}
+	colorAccent := []int{52, 152, 219}
+
+	// Header
+	pdf.SetFillColor(255, 255, 255)
+	pdf.Rect(0, 0, 210, 50, "F")
+	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.Rect(0, 48, 210, 4, "F")
+	
+	logoPath := "assets/images/logoivess.PNG"
+	pdf.Image(logoPath, 15, 10, 40, 0, false, "", 0, "")
+	
+	pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.SetFont("Arial", "B", 16)
+	pdf.SetY(35)
+	pdf.SetX(15)
+	pdf.CellFormat(60, 8, constants.PDFHeaderTitle, "", 0, "L", false, 0, "")
+	
+	// Order Number Box
+	pdf.SetDrawColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.SetLineWidth(0.5)
+	pdf.Rect(140, 10, 55, 30, "D")
+	pdf.SetFont("Arial", "B", 12)
+	pdf.SetY(13)
+	pdf.SetX(140)
+	pdf.CellFormat(55, 7, constants.PDFOrderTitle, "", 1, "C", false, 0, "")
+	pdf.SetFont("Arial", "B", 18)
+	pdf.SetTextColor(colorAccent[0], colorAccent[1], colorAccent[2])
+	pdf.SetY(22)
+	pdf.SetX(140)
+	pdf.CellFormat(55, 10, workOrder.OrderNumber, "", 0, "C", false, 0, "")
+	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+	pdf.SetLineWidth(0.2)
+	
+	// Service Section
+	pdf.SetY(58)
+	pdf.SetFont("Arial", "B", 11)
+	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(0, 8, constants.PDFSectionService, "", 1, "L", true, 0, "")
+	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+	pdf.Ln(2)
+	pdf.SetFont("Arial", "", 10)
+	leftCol := 95.0
+
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Cell(45, 7, constants.PDFLabelDate)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(leftCol-45, 7, time.Now().Format("02/01/2006"))
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Cell(45, 7, constants.PDFLabelActionType)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(0, 7, workOrder.TipoAccion)
+	pdf.Ln(7)
+
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Cell(45, 7, constants.PDFLabelAccountNumber)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(leftCol-45, 7, workOrder.NroCta)
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Cell(45, 7, constants.PDFLabelDeliveryNumber)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(0, 7, workOrder.NroRto)
+	pdf.Ln(10)
+
+	// Client Section
+	pdf.SetFont("Arial", "B", 11)
+	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(0, 8, constants.PDFSectionClient, "", 1, "L", true, 0, "")
+	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+	pdf.Ln(2)
+
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Cell(45, 7, constants.PDFLabelName)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(0, 7, workOrder.Name)
+	pdf.Ln(7)
+
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Cell(45, 7, constants.PDFLabelAddress)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(0, 7, workOrder.Address)
+	pdf.Ln(7)
+
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Cell(45, 7, constants.PDFLabelLocality)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(0, 7, workOrder.Localidad)
+	pdf.Ln(10)
+
+	// Equipment Section
+	if len(dispensers) > 0 {
+		pdf.SetFont("Arial", "B", 11)
+		pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+		pdf.SetTextColor(255, 255, 255)
+		pdf.CellFormat(0, 8, constants.PDFSectionEquipment, "", 1, "L", true, 0, "")
+		pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+		pdf.Ln(2)
+		pdf.SetFillColor(colorAccent[0], colorAccent[1], colorAccent[2])
+		pdf.SetTextColor(255, 255, 255)
+		pdf.SetFont("Arial", "B", 10)
+		pdf.CellFormat(20, 8, constants.PDFTableItem, "1", 0, "C", true, 0, "")
+		pdf.CellFormat(0, 8, constants.PDFTableSerialNumber, "1", 1, "C", true, 0, "")
+
+		pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+		pdf.SetFont("Arial", "", 10)
+		fill := false
+		for i, dispenser := range dispensers {
+			if fill {
+				pdf.SetFillColor(245, 245, 245)
+			} else {
+				pdf.SetFillColor(255, 255, 255)
+			}
+			pdf.CellFormat(20, 7, fmt.Sprintf("%d", i+1), "1", 0, "C", fill, 0, "")
+			pdf.CellFormat(0, 7, dispenser.NroSerie, "1", 1, "L", fill, 0, "")
+			fill = !fill
+		}
+		pdf.Ln(5)
+	}
+
+	// Task Section
+	pdf.SetFont("Arial", "B", 11)
+	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(0, 8, constants.PDFSectionTask, "", 1, "L", true, 0, "")
+	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+	pdf.Ln(2)
+
+	rectStartY := pdf.GetY()
+
+	var tareaTexto string
+	switch workOrder.TipoAccion {
+	case "Instalacion":
+		tareaTexto = constants.TaskInstallation
+	case "Retiro":
+		tareaTexto = constants.TaskRemoval
+	case "Recambio":
+		tareaTexto = constants.TaskReplacement
+	default:
+		tareaTexto = "Realizar la acción correspondiente según tipo de servicio."
+	}
+
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+	pdf.SetX(17)
+	pdf.MultiCell(176, 5, tareaTexto, "", "L", false)
+
+	pdf.SetDrawColor(colorAccent[0], colorAccent[1], colorAccent[2])
+	pdf.SetLineWidth(0.3)
+	pdf.Rect(15, rectStartY, 180, 35, "D")
+	pdf.SetY(rectStartY + 35)
+	pdf.Ln(2)
+
+	// Guardar PDF en disco temporal
+	pdfPath := fmt.Sprintf("/tmp/work_order_%s.pdf", workOrder.OrderNumber)
+	err := pdf.OutputFileAndClose(pdfPath)
+	if err != nil {
+		return "", fmt.Errorf("error guardando PDF: %w", err)
+	}
+
+	return pdfPath, nil
+}

@@ -104,11 +104,13 @@ func main() {
 
 	// RabbitMQ Consumer para Work Orders
 	if rabbitPublisher != nil {
+		realPDFGenerator := service.NewRealWorkOrderPDFGenerator()
+		
 		consumer, err := service.NewWorkOrderConsumer(
 			rabbitConfig,
 			workOrderStore,
 			deliveryStore,
-			pdfService,
+			realPDFGenerator,
 			emailService,
 		)
 
