@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"GoFrioCalor/config"
@@ -139,8 +140,16 @@ func (c *WorkOrderConsumer) processMessage(ctx context.Context, msg amqp.Deliver
 			Int("delivery_id", workOrderMsg.DeliveryID).
 			Msg("Failed to process work order")
 
-		// Rechazar el mensaje y devolverlo a la cola para reintento
-		// TODO: Implementar dead letter queue después de N reintentos
+		// Si es error de duplicate key, confirmar el mensaje (ya existe)
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "already exists") {
+			log.Warn().
+				Int("delivery_id", workOrderMsg.DeliveryID).
+				Msg("Work order already exists, acknowledging message")
+			msg.Ack(false)
+			return
+		}
+
+		// Para otros errores, rechazar y reencolar para reintento
 		msg.Nack(false, true)
 		return
 	}
@@ -154,6 +163,16 @@ func (c *WorkOrderConsumer) processMessage(ctx context.Context, msg amqp.Deliver
 
 // createWorkOrder crea la orden de trabajo, genera PDF y envía email
 func (c *WorkOrderConsumer) createWorkOrder(ctx context.Context, msg dto.WorkOrderMessageDTO) error {
+	// 0. Verificar si ya existe una orden para este delivery
+	existingOrder, err := c.workOrderStore.FindByDeliveryID(ctx, msg.DeliveryID)
+	if err == nil && existingOrder != nil {
+		log.Info().
+			Int("delivery_id", msg.DeliveryID).
+			Str("order_number", existingOrder.OrderNumber).
+			Msg("Work order already exists for this delivery, skipping")
+		return fmt.Errorf("work order already exists for delivery %d", msg.DeliveryID)
+	}
+
 	// 1. Generar número de orden
 	orderNumber, err := c.workOrderStore.GetNextOrderNumber(ctx)
 	if err != nil {
@@ -163,6 +182,7 @@ func (c *WorkOrderConsumer) createWorkOrder(ctx context.Context, msg dto.WorkOrd
 	// 2. Crear orden de trabajo
 	workOrder := &models.WorkOrder{
 		OrderNumber: orderNumber,
+		DeliveryID:  msg.DeliveryID,
 		NroCta:      msg.NroCta,
 		NroRto:      msg.NroRto,
 		Name:        msg.Name,

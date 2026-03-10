@@ -12,6 +12,7 @@ import (
 type WorkOrderStore interface {
 	Create(ctx context.Context, workOrder *models.WorkOrder) error
 	GetNextOrderNumber(ctx context.Context) (string, error)
+	FindByDeliveryID(ctx context.Context, deliveryID int) (*models.WorkOrder, error)
 }
 
 type workOrderStore struct {
@@ -37,4 +38,16 @@ func (s *workOrderStore) GetNextOrderNumber(ctx context.Context) (string, error)
 
 	orderNumber := fmt.Sprintf("OT-%06d", count+1)
 	return orderNumber, nil
+}
+
+func (s *workOrderStore) FindByDeliveryID(ctx context.Context, deliveryID int) (*models.WorkOrder, error) {
+	var workOrder models.WorkOrder
+	err := s.db.WithContext(ctx).Where("delivery_id = ?", deliveryID).First(&workOrder).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &workOrder, nil
 }

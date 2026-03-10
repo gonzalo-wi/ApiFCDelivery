@@ -104,13 +104,11 @@ func main() {
 
 	// RabbitMQ Consumer para Work Orders
 	if rabbitPublisher != nil {
-		mockPDFService := service.NewMockPDFService()
-
 		consumer, err := service.NewWorkOrderConsumer(
 			rabbitConfig,
 			workOrderStore,
 			deliveryStore,
-			mockPDFService,
+			pdfService,
 			emailService,
 		)
 

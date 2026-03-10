@@ -5,6 +5,7 @@ import "time"
 type WorkOrder struct {
 	ID          int       `gorm:"primaryKey" json:"id"`
 	OrderNumber string    `gorm:"unique;not null" json:"order_number"`
+	DeliveryID  int       `gorm:"index" json:"delivery_id"` // Para detectar duplicados
 	NroCta      string    `gorm:"not null" json:"nro_cta"`
 	NroRto      string    `gorm:"not null" json:"nro_rto"`
 	Name        string    `gorm:"not null" json:"name"`
