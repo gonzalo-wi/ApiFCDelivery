@@ -7,7 +7,7 @@ type TipoEntrega string
 const (
 	Instalacion TipoEntrega = "Instalacion"
 	Retiro      TipoEntrega = "Retiro"
-	Recambio    TipoEntrega = "Recambio"
+	Service     TipoEntrega = "Service"
 )
 
 type EstadoEntrega string

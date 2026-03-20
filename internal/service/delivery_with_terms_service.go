@@ -103,14 +103,10 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 	if err := json.Unmarshal([]byte(termsSession.DeliveryData), &deliveryReq); err != nil {
 		return nil, fmt.Errorf("error deserializando datos de entrega: %w", err)
 	}
-
-	// Parsear fecha de acción usando helper
 	fechaAccion, err := parseFechaAccion(deliveryReq.FechaAccion)
 	if err != nil {
 		return nil, err
 	}
-
-	// Crear items de dispensers
 	itemDispensers := make([]models.ItemDispenser, len(deliveryReq.ItemDispensers))
 	for i, item := range deliveryReq.ItemDispensers {
 		itemDispensers[i] = models.ItemDispenser{
@@ -118,8 +114,6 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 			Cantidad: item.Cantidad,
 		}
 	}
-
-	// Crear la entrega
 	delivery := &models.Delivery{
 		NroCta:         deliveryReq.NroCta,
 		NroRto:         deliveryReq.NroRto,
@@ -130,15 +124,10 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 		TermsSessionID: &termsSession.ID,
 		FechaAccion:    fechaAccion,
 	}
-
-	// Generar token de 4 dígitos (el que ya existe en delivery service)
 	delivery.Token = generateDeliveryToken()
-
-	// Guardar en BD
 	if err := s.deliveryStore.Create(ctx, delivery); err != nil {
 		return nil, fmt.Errorf("error creando entrega: %w", err)
 	}
-
 	log.Info().
 		Int("delivery_id", delivery.ID).
 		Str("nro_rto", delivery.NroRto).

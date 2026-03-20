@@ -46,3 +46,4 @@ func (s *truckService) Update(ctx context.Context, truck *models.Truck) error {
 func (s *truckService) Delete(ctx context.Context, id int) error {
 	return s.store.Delete(ctx, id)
 }
+

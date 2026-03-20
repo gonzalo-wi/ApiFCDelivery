@@ -289,16 +289,16 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 	pdf.Rect(0, 0, 210, 50, "F")
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.Rect(0, 48, 210, 4, "F")
-	
+
 	logoPath := "assets/images/logoivess.PNG"
 	pdf.Image(logoPath, 15, 10, 40, 0, false, "", 0, "")
-	
+
 	pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetFont("Arial", "B", 16)
 	pdf.SetY(35)
 	pdf.SetX(15)
 	pdf.CellFormat(60, 8, constants.PDFHeaderTitle, "", 0, "L", false, 0, "")
-	
+
 	// Order Number Box
 	pdf.SetDrawColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetLineWidth(0.5)
@@ -314,7 +314,7 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 	pdf.CellFormat(55, 10, workOrder.OrderNumber, "", 0, "C", false, 0, "")
 	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
 	pdf.SetLineWidth(0.2)
-	
+
 	// Service Section
 	pdf.SetY(58)
 	pdf.SetFont("Arial", "B", 11)

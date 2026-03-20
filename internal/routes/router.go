@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func SetupRouter(deliveryHandler *transport.DeliveryHandler,
@@ -26,6 +27,7 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 	router.Use(middleware.RequestID())
 
 	router.Use(middleware.Logger())
+	router.Use(middleware.PrometheusMetrics())
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.GetCORSOrigins(),
@@ -43,6 +45,9 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 			"timestamp": time.Now().Unix(),
 		})
 	})
+
+	// Prometheus metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Rutas públicas de autenticación (sin middleware)
 	authHandler := transport.NewAuthHandler(cfg.AuthServiceURL)
