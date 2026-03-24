@@ -32,8 +32,8 @@ COPY --from=builder /app/migrations ./migrations
 # Copy assets (logo for PDFs)
 COPY --from=builder /app/assets ./assets
 
-# Expose port
-EXPOSE 8095
+# Expose internal app port
+EXPOSE 8080
 
 # Run the application
 CMD ["./main"]

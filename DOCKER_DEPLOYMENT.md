@@ -13,13 +13,13 @@
 INFOBIP_API_KEY=tu_api_key_real_aqui
 ```
 
-### 2. Construir y levantar el contenedor
+### 2. Construir y levantar el stack (2 instancias + balanceador)
 
 ```bash
 # Construir la imagen
 docker-compose build
 
-# Levantar el contenedor
+# Levantar 2 instancias de la API + Nginx
 docker-compose up -d
 ```
 
@@ -40,7 +40,7 @@ curl http://192.168.0.250:8095/health
 
 ### Ver logs en tiempo real
 ```bash
-docker-compose logs -f app
+docker-compose logs -f app1 app2 nginx
 ```
 
 ### Reiniciar el servicio
@@ -60,16 +60,16 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-### Entrar al contenedor
+### Entrar a una instancia de la API
 ```bash
-docker exec -it gofrocalor-api sh
+docker-compose exec app1 sh
 ```
 
 ## Acceso
 
 La API estará disponible en:
-- **URL interna:** http://localhost:8080 (dentro del contenedor)
-- **URL externa:** http://192.168.0.250:8095
+- **URL interna (instancias):** http://app1:8080 y http://app2:8080
+- **URL externa (balanceada por Nginx):** http://192.168.0.250:8095
 
 ## Endpoints principales
 
@@ -93,7 +93,7 @@ Las siguientes variables están configuradas en `docker-compose.yml`:
 ### El contenedor no inicia
 ```bash
 # Ver logs completos
-docker-compose logs app
+docker-compose logs app1 app2 nginx
 
 # Verificar que no haya otro servicio en el puerto 8095
 netstat -an | grep 8095
@@ -102,7 +102,7 @@ netstat -an | grep 8095
 ### No puede conectar a la base de datos
 ```bash
 # Verificar conectividad desde el contenedor
-docker exec -it gofrocalor-api ping 192.168.0.227
+docker-compose exec app1 ping 192.168.0.227
 ```
 
 ### Actualizar solo variables de entorno
@@ -115,9 +115,10 @@ docker-compose up -d
 ## Monitoreo
 
 ### Health check automático
-Docker verificará automáticamente la salud del servicio cada 30 segundos mediante el endpoint `/health`.
+Docker verificará automáticamente la salud de cada instancia (`app1` y `app2`) cada 30 segundos mediante el endpoint `/health`.
 
 ### Ver estado del health check
 ```bash
-docker inspect gofrocalor-api | grep Health -A 10
+docker inspect $(docker-compose ps -q app1) | grep Health -A 10
+docker inspect $(docker-compose ps -q app2) | grep Health -A 10
 ```
