@@ -17,6 +17,8 @@ type DeliveryStore interface {
 	FindByTokenAndFilters(ctx context.Context, token, nroCta, fechaAccion string, estado models.EstadoEntrega) (*models.Delivery, error)
 	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
 	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
+	FindByFechaAccion(ctx context.Context, fecha string) ([]models.Delivery, error)
+	FindByFechaAndNroCta(ctx context.Context, fechaAccion, nroCta string) (*models.Delivery, error)
 	Create(ctx context.Context, delivery *models.Delivery) error
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
@@ -116,6 +118,33 @@ func (s *deliveryStore) FindByRto(ctx context.Context, nroRto string, fechaAccio
 		return nil, fmt.Errorf(constants.ErrFindDeliveriesByRto, err)
 	}
 	return deliveries, nil
+}
+
+// FindByFechaAccion busca todos los deliveries de un día exacto.
+// Extrae la fecha en UTC para evitar desfases de timezone del servidor PostgreSQL.
+func (s *deliveryStore) FindByFechaAccion(ctx context.Context, fecha string) ([]models.Delivery, error) {
+	var deliveries []models.Delivery
+	if err := s.db.WithContext(ctx).
+		Preload("ItemDispensers").
+		Where("(fecha_accion AT TIME ZONE 'UTC')::date = ?::date", fecha).
+		Find(&deliveries).Error; err != nil {
+		return nil, fmt.Errorf("error buscando deliveries por fecha_accion: %w", err)
+	}
+	return deliveries, nil
+}
+
+// FindByFechaAndNroCta busca un delivery específico por fecha_accion y nro_cta para contact center
+func (s *deliveryStore) FindByFechaAndNroCta(ctx context.Context, fechaAccion, nroCta string) (*models.Delivery, error) {
+	var delivery models.Delivery
+	if err := s.db.WithContext(ctx).
+		Where("(fecha_accion AT TIME ZONE 'UTC')::date = ?::date AND nro_cta = ?", fechaAccion, nroCta).
+		First(&delivery).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error buscando delivery por fecha_accion y nro_cta: %w", err)
+	}
+	return &delivery, nil
 }
 
 func (s *deliveryStore) Create(ctx context.Context, delivery *models.Delivery) error {

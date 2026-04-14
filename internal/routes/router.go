@@ -16,19 +16,12 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 	deliveryWithTermsHandler *transport.DeliveryWithTermsHandler, mobileDeliveryHandler *transport.MobileDeliveryHandler,
 	auditHandler *transport.AuditHandler, cfg *config.Config) *gin.Engine {
 	router := gin.New()
-
-	// Deshabilitar el redirect automático de trailing slashes
 	router.RedirectTrailingSlash = false
 	router.RedirectFixedPath = false
-
 	router.Use(gin.Recovery())
-
-	// Request ID middleware (para trazabilidad)
 	router.Use(middleware.RequestID())
-
 	router.Use(middleware.Logger())
 	router.Use(middleware.PrometheusMetrics())
-
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.GetCORSOrigins(),
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -46,14 +39,16 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 		})
 	})
 
-	// Prometheus metrics endpoint
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	// Rutas públicas de autenticación (sin middleware)
 	authHandler := transport.NewAuthHandler(cfg.AuthServiceURL)
 	RegisterAuthRoutes(router, authHandler)
 
-	// Grupo de rutas protegidas con autenticación JWT
+	publicAPI := router.Group("/dispenser-operations/api/v1")
+	{
+		RegisterPublicDeliveryRoutes(publicAPI, deliveryHandler)
+	}
+
 	api := router.Group("/dispenser-operations/api/v1")
 	api.Use(middleware.AuthMiddleware(cfg.AuthServiceURL))
 	{
@@ -62,12 +57,10 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 		RegisterTermsRoutes(api, termsSessionHandler)
 		RegisterDeliveryWithTermsRoutes(api, deliveryWithTermsHandler)
 
-		// Mobile routes (solo si el handler está disponible)
 		if mobileDeliveryHandler != nil {
 			RegisterMobileRoutes(api, mobileDeliveryHandler)
 		}
 
-		// Audit routes (si el handler está disponible)
 		if auditHandler != nil {
 			RegisterAuditRoutes(api, auditHandler)
 		}

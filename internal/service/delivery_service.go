@@ -19,6 +19,8 @@ type DeliveryService interface {
 	FindByID(ctx context.Context, id int) (*models.Delivery, error)
 	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
 	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
+	FindByFechaAccion(ctx context.Context, fecha string) ([]models.Delivery, error)
+	FindByFechaAndNroCta(ctx context.Context, fechaAccion, nroCta string) (*models.Delivery, error)
 	Create(ctx context.Context, delivery *models.Delivery) error
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
@@ -57,6 +59,14 @@ func (s *deliveryService) FindByFilters(ctx context.Context, nroCta string, fech
 
 func (s *deliveryService) FindByRto(ctx context.Context, rto string, fechaAccion *time.Time) ([]models.Delivery, error) {
 	return s.store.FindByRto(ctx, rto, fechaAccion)
+}
+
+func (s *deliveryService) FindByFechaAccion(ctx context.Context, fecha string) ([]models.Delivery, error) {
+	return s.store.FindByFechaAccion(ctx, fecha)
+}
+
+func (s *deliveryService) FindByFechaAndNroCta(ctx context.Context, fechaAccion, nroCta string) (*models.Delivery, error) {
+	return s.store.FindByFechaAndNroCta(ctx, fechaAccion, nroCta)
 }
 
 // Al momento de crear la entrega se genera el token para el cliente

@@ -1,9 +1,10 @@
 # Colecciones Postman - GoFrioCalor API
 
-Este directorio contiene dos colecciones de Postman:
+Este directorio contiene tres colecciones de Postman:
 
 1. **Mobile_Delivery_Flow.postman_collection.json** - Flujo completo de entregas móviles con RabbitMQ
 2. **Infobip_Delivery_Collection.json** - API de integración con Infobip (sistema externo)
+3. **Contact_Center_Token.postman_collection.json** - API pública para Contact Center (sin autenticación)
 
 ---
 
@@ -88,6 +89,66 @@ La colección incluye **9 ejemplos** organizados en 2 carpetas:
 - Error - Campo Faltante (nro_cta)
 - Error - Tipo Entrega Inválido
 - Error - Entregado Por Inválido
+
+---
+
+## 📞 Contact Center Token API
+
+### 📥 Importar a Postman
+1. Abre Postman
+2. Click en **Import** (botón superior izquierdo)
+3. Selecciona el archivo: `Contact_Center_Token.postman_collection.json`
+4. Click en **Import**
+
+### 🚀 Uso
+
+#### 🔓 **Endpoint Público - SIN Autenticación**
+Este endpoint NO requiere ningún tipo de autenticación (`x-api-key`, token, etc.)
+
+#### Endpoint
+```
+GET /dispenser-operations/api/v1/deliveries/contact-center/token
+```
+
+#### Parámetros Query
+- `fecha_accion` (obligatorio): Fecha en formato YYYY-MM-DD
+- `nro_cta` (obligatorio): Número de cuenta del cliente
+
+#### Ejemplo de Uso
+```
+GET /deliveries/contact-center/token?fecha_accion=2026-03-21&nro_cta=43534
+```
+
+#### Respuesta Exitosa (200 OK)
+```json
+{
+    "id": 18,
+    "fecha_accion": "2026-03-21",
+    "nro_cta": "43534",
+    "token": "2181"
+}
+```
+
+### 📋 Casos de Prueba Incluidos
+La colección incluye ejemplos para:
+1. ✅ **Búsqueda Exitosa** - Devuelve el token del delivery
+2. ❌ **Delivery No Encontrado** (404) - Cuenta no existe en esa fecha
+3. ❌ **Parámetros Faltantes** (400) - Falta fecha o nro_cta
+4. ❌ **Fecha Inválida** (400) - Formato de fecha incorrecto
+
+### 🎯 Casos de Uso
+- **Contact Center**: Obtener el token cuando un cliente llama
+- **Panel Web**: Integrar en un formulario de búsqueda
+- **Validación**: Verificar que exista un delivery programado
+
+### ⚡ Script de Prueba PowerShell
+También puedes probar con el script incluido:
+```powershell
+.\tests\test_contact_center_token.ps1
+```
+
+### 📚 Documentación Completa
+Ver documentación detallada: `docs/CONTACT_CENTER_TOKEN_API.md`
 
 ---
 

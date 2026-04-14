@@ -1,0 +1,317 @@
+{
+	"info": {
+		"_postman_id": "cc123456-7890-abcd-ef12-345678901234",
+		"name": "Contact Center - Token API",
+		"description": "Endpoint público para que el contact center obtenga el token de un delivery sin autenticación",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Obtener Token por Fecha y Cuenta",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has required fields\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('id');",
+							"    pm.expect(jsonData).to.have.property('fecha_accion');",
+							"    pm.expect(jsonData).to.have.property('nro_cta');",
+							"    pm.expect(jsonData).to.have.property('token');",
+							"});",
+							"",
+							"pm.test(\"Token is not empty\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.token).to.not.be.empty;",
+							"});",
+							"",
+							"// Save token as environment variable for use in other requests",
+							"if (pm.response.code === 200) {",
+							"    var jsonData = pm.response.json();",
+							"    pm.environment.set(\"delivery_token\", jsonData.token);",
+							"    console.log(\"Token guardado: \" + jsonData.token);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/deliveries/contact-center/token?fecha_accion={{fecha_accion}}&nro_cta={{nro_cta}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"deliveries",
+						"contact-center",
+						"token"
+					],
+					"query": [
+						{
+							"key": "fecha_accion",
+							"value": "{{fecha_accion}}",
+							"description": "Fecha de acción en formato YYYY-MM-DD"
+						},
+						{
+							"key": "nro_cta",
+							"value": "{{nro_cta}}",
+							"description": "Número de cuenta del cliente"
+						}
+					]
+				},
+				"description": "Endpoint público (sin autenticación) para obtener el token de un delivery.\n\n**Parámetros:**\n- `fecha_accion` (obligatorio): Fecha en formato YYYY-MM-DD\n- `nro_cta` (obligatorio): Número de cuenta del cliente\n\n**Respuesta exitosa:**\n```json\n{\n    \"id\": 18,\n    \"fecha_accion\": \"2026-03-21\",\n    \"nro_cta\": \"43534\",\n    \"token\": \"2181\"\n}\n```"
+			},
+			"response": [
+				{
+					"name": "Búsqueda Exitosa",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/deliveries/contact-center/token?fecha_accion=2026-03-21&nro_cta=43534",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"deliveries",
+								"contact-center",
+								"token"
+							],
+							"query": [
+								{
+									"key": "fecha_accion",
+									"value": "2026-03-21"
+								},
+								{
+									"key": "nro_cta",
+									"value": "43534"
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"id\": 18,\n    \"fecha_accion\": \"2026-03-21\",\n    \"nro_cta\": \"43534\",\n    \"token\": \"2181\"\n}"
+				},
+				{
+					"name": "Delivery No Encontrado",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/deliveries/contact-center/token?fecha_accion=2026-03-21&nro_cta=99999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"deliveries",
+								"contact-center",
+								"token"
+							],
+							"query": [
+								{
+									"key": "fecha_accion",
+									"value": "2026-03-21"
+								},
+								{
+									"key": "nro_cta",
+									"value": "99999"
+								}
+							]
+						}
+					},
+					"status": "Not Found",
+					"code": 404,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"error\": \"No se encontró delivery con los parámetros especificados\"\n}"
+				},
+				{
+					"name": "Parámetros Faltantes",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/deliveries/contact-center/token?fecha_accion=2026-03-21",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"deliveries",
+								"contact-center",
+								"token"
+							],
+							"query": [
+								{
+									"key": "fecha_accion",
+									"value": "2026-03-21"
+								}
+							]
+						}
+					},
+					"status": "Bad Request",
+					"code": 400,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"error\": \"Parámetros 'fecha_accion' y 'nro_cta' son requeridos\"\n}"
+				},
+				{
+					"name": "Fecha Inválida",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/deliveries/contact-center/token?fecha_accion=21-03-2026&nro_cta=43534",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"deliveries",
+								"contact-center",
+								"token"
+							],
+							"query": [
+								{
+									"key": "fecha_accion",
+									"value": "21-03-2026"
+								},
+								{
+									"key": "nro_cta",
+									"value": "43534"
+								}
+							]
+						}
+					},
+					"status": "Bad Request",
+					"code": 400,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"error\": \"Fecha inválida. Formato esperado: YYYY-MM-DD\"\n}"
+				}
+			]
+		},
+		{
+			"name": "Buscar múltiples deliveries (con fecha)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is an array\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"});",
+							"",
+							"if (pm.response.json().length > 0) {",
+							"    pm.test(\"First item has token\", function () {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(jsonData[0]).to.have.property('token');",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/deliveries/contact-center/token?fecha_accion={{fecha_accion}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"deliveries",
+						"contact-center",
+						"token"
+					],
+					"query": [
+						{
+							"key": "fecha_accion",
+							"value": "{{fecha_accion}}",
+							"description": "Fecha de acción en formato YYYY-MM-DD"
+						}
+					]
+				},
+				"description": "Busca todos los deliveries de una fecha específica (útil para ver qué cuentas tienen delivery ese día)"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:9090/dispenser-operations/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "fecha_accion",
+			"value": "2026-03-21",
+			"type": "string"
+		},
+		{
+			"key": "nro_cta",
+			"value": "43534",
+			"type": "string"
+		}
+	]
+}

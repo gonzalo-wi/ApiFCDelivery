@@ -239,6 +239,70 @@ func (h *DeliveryHandler) GetDeliveriesByNroCta(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GetTallerPrep devuelve los deliveries de una fecha dada con el resumen de dispensers P y M
+// que el taller Frio Calor necesita preparar.
+// Query param obligatorio: fecha_accion (YYYY-MM-DD)
+func (h *DeliveryHandler) GetTallerPrep(c *gin.Context) {
+	ctx := c.Request.Context()
+	fechaStr := c.Query("fecha_accion")
+
+	if fechaStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Parámetro 'fecha_accion' requerido. Formato: YYYY-MM-DD"})
+		return
+	}
+
+	if _, err := time.Parse("2006-01-02", fechaStr); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha inválida. Formato esperado: YYYY-MM-DD"})
+		return
+	}
+
+	deliveries, err := h.service.FindByFechaAccion(ctx, fechaStr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := dto.ToTallerPrepResponse(fechaStr, deliveries)
+	c.JSON(http.StatusOK, response)
+}
+
+// GetTokenByFechaAndCta busca y devuelve el token para un delivery específico
+// Endpoint público para contact center sin autenticación
+// Query params: fecha_accion (YYYY-MM-DD) y nro_cta (string)
+func (h *DeliveryHandler) GetTokenByFechaAndCta(c *gin.Context) {
+	ctx := c.Request.Context()
+	fechaAccion := c.Query("fecha_accion")
+	nroCta := c.Query("nro_cta")
+
+	if fechaAccion == "" || nroCta == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Parámetros 'fecha_accion' y 'nro_cta' son requeridos"})
+		return
+	}
+
+	if _, err := time.Parse("2006-01-02", fechaAccion); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha inválida. Formato esperado: YYYY-MM-DD"})
+		return
+	}
+
+	delivery, err := h.service.FindByFechaAndNroCta(ctx, fechaAccion, nroCta)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if delivery == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No se encontró delivery con los parámetros especificados"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":           delivery.ID,
+		"fecha_accion": delivery.FechaAccion.Format("2006-01-02"),
+		"nro_cta":      delivery.NroCta,
+		"token":        delivery.Token,
+	})
+}
+
 // CreateDeliveryFromInfobip maneja la creación de entregas desde el chatbot de Infobip
 // POST /api/v1/deliveries/infobip
 func (h *DeliveryHandler) CreateDeliveryFromInfobip(c *gin.Context) {

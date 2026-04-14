@@ -16,7 +16,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// WorkOrderConsumer procesa mensajes de RabbitMQ para crear órdenes de trabajo
 type WorkOrderConsumer struct {
 	conn           *amqp.Connection
 	ch             *amqp.Channel
@@ -28,7 +27,6 @@ type WorkOrderConsumer struct {
 	stopChan       chan struct{}
 }
 
-// NewWorkOrderConsumer crea un nuevo consumidor
 func NewWorkOrderConsumer(
 	rabbitConfig *config.RabbitMQConfig,
 	workOrderStore store.WorkOrderStore,
@@ -40,34 +38,27 @@ func NewWorkOrderConsumer(
 	if err != nil {
 		return nil, err
 	}
-
 	ch, err := conn.Channel()
 	if err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("failed to open channel: %w", err)
 	}
-
-	// Declarar la cola
 	_, err = config.DeclareQueue(ch, rabbitConfig.Queue)
 	if err != nil {
 		ch.Close()
 		conn.Close()
 		return nil, err
 	}
-
-	// Configurar QoS - procesar un mensaje a la vez
 	err = ch.Qos(1, 0, false)
 	if err != nil {
 		ch.Close()
 		conn.Close()
 		return nil, fmt.Errorf("failed to set QoS: %w", err)
 	}
-
 	log.Info().
 		Str("queue", rabbitConfig.Queue).
 		Str("host", rabbitConfig.Host).
 		Msg("Work Order Consumer connected successfully")
-
 	return &WorkOrderConsumer{
 		conn:           conn,
 		ch:             ch,

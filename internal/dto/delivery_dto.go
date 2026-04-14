@@ -52,3 +52,56 @@ func ToDeliveryResponseList(deliveries []models.Delivery) []DeliveryResponse {
 	}
 	return responses
 }
+
+// TallerPrepDeliveryItem representa un delivery con los datos relevantes para preparación de taller
+type TallerPrepDeliveryItem struct {
+	ID     int    `json:"id"`
+	NroRto string `json:"nro_rto"`
+
+	ItemDispensers []ItemDispenserResponse `json:"item_dispensers"`
+}
+
+// TallerPrepResponse es el resumen de dispensers a preparar para una fecha dada
+type TallerPrepResponse struct {
+	Fecha            string                   `json:"fecha"`
+	TotalDispenserP  uint                     `json:"total_dispensers_P"`
+	TotalDispenserM  uint                     `json:"total_dispensers_M"`
+	TotalDispensers  uint                     `json:"total_dispensers"`
+	CantidadEntregar int                      `json:"cantidad_deliveries"`
+	Deliveries       []TallerPrepDeliveryItem `json:"deliveries"`
+}
+
+func ToTallerPrepResponse(fecha string, deliveries []models.Delivery) TallerPrepResponse {
+	items := make([]TallerPrepDeliveryItem, 0, len(deliveries))
+	var totalP, totalM uint
+
+	for _, d := range deliveries {
+		dispensers := make([]ItemDispenserResponse, len(d.ItemDispensers))
+		for i, item := range d.ItemDispensers {
+			dispensers[i] = ItemDispenserResponse{
+				Tipo:     item.Tipo,
+				Cantidad: item.Cantidad,
+			}
+			switch item.Tipo {
+			case models.TipoDispenserPie:
+				totalP += item.Cantidad
+			case models.TipoDispenserMesada:
+				totalM += item.Cantidad
+			}
+		}
+		items = append(items, TallerPrepDeliveryItem{
+			ID:             d.ID,
+			NroRto:         d.NroRto,
+			ItemDispensers: dispensers,
+		})
+	}
+
+	return TallerPrepResponse{
+		Fecha:            fecha,
+		TotalDispenserP:  totalP,
+		TotalDispenserM:  totalM,
+		TotalDispensers:  totalP + totalM,
+		CantidadEntregar: len(deliveries),
+		Deliveries:       items,
+	}
+}
