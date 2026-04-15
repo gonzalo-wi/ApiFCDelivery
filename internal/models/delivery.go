@@ -3,26 +3,18 @@ package models
 import "time"
 
 type TipoEntrega string
-
-const (
-	Instalacion TipoEntrega = "Instalacion"
-	Retiro      TipoEntrega = "Retiro"
-	Service     TipoEntrega = "Service"
-)
-
 type EstadoEntrega string
-
-const (
-	Pendiente  EstadoEntrega = "Pendiente"
-	Completado EstadoEntrega = "Completado"
-	Cancelado  EstadoEntrega = "Cancelado"
-)
-
 type EntregadoPor string
 
 const (
-	Repartidor EntregadoPor = "Repartidor"
-	Tecnico    EntregadoPor = "Tecnico"
+	Instalacion TipoEntrega   = "Instalacion"
+	Retiro      TipoEntrega   = "Retiro"
+	Service     TipoEntrega   = "Service"
+	Pendiente   EstadoEntrega = "Pendiente"
+	Completado  EstadoEntrega = "Completado"
+	Cancelado   EstadoEntrega = "Cancelado"
+	Repartidor  EntregadoPor  = "Repartidor"
+	Tecnico     EntregadoPor  = "Tecnico"
 )
 
 type Delivery struct {

@@ -41,6 +41,39 @@ func (h *TermsSessionHandler) CreateInfobipSession(c *gin.Context) {
 
 	log.Info().
 		Str("session_id", req.SessionID).
+		Str("source", "infobip").
+		Msg(constants.LogCreatingTermsSession)
+
+	response, err := h.service.CreateSession(ctx, req.SessionID, h.appBaseURL, h.termsTTL)
+	if err != nil {
+		log.Error().Err(err).Str("session_id", req.SessionID).Msg(constants.LogErrorCreatingSession)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": constants.MsgErrorCreatingTermsSession,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateContactCenterSession maneja la creación manual de sesión desde contact center
+// POST /api/contact-center/session
+func (h *TermsSessionHandler) CreateContactCenterSession(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req dto.InfobipSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Warn().Err(err).Msg("Error validating contact center session request")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   constants.MsgInvalidRequest,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	log.Info().
+		Str("session_id", req.SessionID).
+		Str("source", "contact_center").
 		Msg(constants.LogCreatingTermsSession)
 
 	response, err := h.service.CreateSession(ctx, req.SessionID, h.appBaseURL, h.termsTTL)
