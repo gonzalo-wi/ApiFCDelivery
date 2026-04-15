@@ -36,6 +36,7 @@ type ItemDispenserInfoDTO struct {
 // MobileCompleteDeliveryRequest - Completar la entrega desde app móvil
 type MobileCompleteDeliveryRequest struct {
 	DeliveryID          int      `json:"delivery_id" binding:"required"`
+	OrderNumber         string   `json:"order_number" binding:"required"`
 	Name                string   `json:"name"`
 	Email               string   `json:"email"`
 	Address             string   `json:"address"`

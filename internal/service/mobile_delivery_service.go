@@ -213,17 +213,18 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 	}
 
 	workOrderMsg := dto.WorkOrderMessageDTO{
-		NroCta:     delivery.NroCta,
-		Name:       delivery.Name,
-		Email:      delivery.Email,
-		Address:    delivery.Address,
-		Locality:   delivery.Locality,
-		NroRto:     delivery.NroRto,
-		CreatedAt:  delivery.CreatedAt.Format("2006-01-02"),
-		TipoAccion: string(delivery.TipoEntrega),
-		Token:      delivery.Token,
-		Dispensers: dispensersMsg,
-		DeliveryID: delivery.ID,
+		OrderNumber: req.OrderNumber,
+		NroCta:      delivery.NroCta,
+		Name:        delivery.Name,
+		Email:       delivery.Email,
+		Address:     delivery.Address,
+		Locality:    delivery.Locality,
+		NroRto:      delivery.NroRto,
+		CreatedAt:   delivery.CreatedAt.Format("2006-01-02"),
+		TipoAccion:  string(delivery.TipoEntrega),
+		Token:       delivery.Token,
+		Dispensers:  dispensersMsg,
+		DeliveryID:  delivery.ID,
 	}
 
 	// 9. Publicar a RabbitMQ

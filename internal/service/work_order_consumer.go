@@ -164,10 +164,16 @@ func (c *WorkOrderConsumer) createWorkOrder(ctx context.Context, msg dto.WorkOrd
 		return fmt.Errorf("work order already exists for delivery %d", msg.DeliveryID)
 	}
 
-	// 1. Generar número de orden
-	orderNumber, err := c.workOrderStore.GetNextOrderNumber(ctx)
-	if err != nil {
-		return fmt.Errorf("error generando número de orden: %w", err)
+	// 1. Usar número de orden proporcionado por la app móvil
+	orderNumber := msg.OrderNumber
+	if orderNumber == "" {
+		// Fallback: generar número si no viene en el mensaje (retrocompatibilidad)
+		var err error
+		orderNumber, err = c.workOrderStore.GetNextOrderNumber(ctx)
+		if err != nil {
+			return fmt.Errorf("error generando número de orden: %w", err)
+		}
+		log.Warn().Msg("OrderNumber not provided in message, generated automatically")
 	}
 
 	// 2. Crear orden de trabajo
