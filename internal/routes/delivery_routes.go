@@ -21,12 +21,11 @@ func RegisterDeliveryRoutes(router *gin.RouterGroup, handler *transport.Delivery
 }
 
 // RegisterPublicDeliveryRoutes registra rutas de deliveries que no requieren autenticación
+// Estas rutas NO deben tener el middleware de autenticación
 func RegisterPublicDeliveryRoutes(router *gin.RouterGroup, handler *transport.DeliveryHandler) {
-	deliveries := router.Group("/deliveries")
-	{
-		deliveries.GET("/taller-prep", handler.GetTallerPrep)
-		deliveries.GET("/contact-center/token", handler.GetTokenByFechaAndCta)
-	}
+	// Registrar directamente en el grupo, no crear un subgrupo
+	router.GET("/deliveries/taller-prep", handler.GetTallerPrep)
+	router.GET("/deliveries/contact-center/token", handler.GetTokenByFechaAndCta)
 }
 
 func RegisterDeliveryWithTermsRoutes(router *gin.RouterGroup, handler *transport.DeliveryWithTermsHandler) {

@@ -39,16 +39,23 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 		})
 	})
 
+	// Debug endpoint para listar todas las rutas registradas
+	router.GET("/debug/routes", func(c *gin.Context) {
+		routes := router.Routes()
+		c.JSON(200, routes)
+	})
+
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	authHandler := transport.NewAuthHandler(cfg.AuthServiceURL)
 	RegisterAuthRoutes(router, authHandler)
 
+	// ===== RUTAS PÚBLICAS (SIN AUTENTICACIÓN) =====
+	// IMPORTANTE: Estas se registran PRIMERO para evitar que el middleware las capture
 	publicAPI := router.Group("/dispenser-operations/api/v1")
-	{
-		RegisterPublicDeliveryRoutes(publicAPI, deliveryHandler)
-	}
+	RegisterPublicDeliveryRoutes(publicAPI, deliveryHandler)
 
+	// ===== RUTAS PROTEGIDAS (CON AUTENTICACIÓN) =====
 	api := router.Group("/dispenser-operations/api/v1")
 	api.Use(middleware.AuthMiddleware(cfg.AuthServiceURL))
 	{
