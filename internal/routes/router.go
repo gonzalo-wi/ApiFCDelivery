@@ -51,9 +51,10 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 	RegisterAuthRoutes(router, authHandler)
 
 	// ===== RUTAS PÚBLICAS (SIN AUTENTICACIÓN) =====
-	// IMPORTANTE: Estas se registran PRIMERO para evitar que el middleware las capture
-	publicAPI := router.Group("/dispenser-operations/api/v1")
-	RegisterPublicDeliveryRoutes(publicAPI, deliveryHandler)
+	// IMPORTANTE: Se registran directamente en el router para que tengan máxima prioridad
+	// y no sean capturadas por rutas con parámetros dinámicos como /:id
+	router.GET("/dispenser-operations/api/v1/deliveries/taller-prep", deliveryHandler.GetTallerPrep)
+	router.GET("/dispenser-operations/api/v1/deliveries/contact-center/token", deliveryHandler.GetTokenByFechaAndCta)
 
 	// ===== RUTAS PROTEGIDAS (CON AUTENTICACIÓN) =====
 	api := router.Group("/dispenser-operations/api/v1")
