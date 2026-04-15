@@ -55,6 +55,7 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 	// y no sean capturadas por rutas con parámetros dinámicos como /:id
 	router.GET("/dispenser-operations/api/v1/deliveries/taller-prep", deliveryHandler.GetTallerPrep)
 	router.GET("/dispenser-operations/api/v1/deliveries/contact-center/token", deliveryHandler.GetTokenByFechaAndCta)
+	router.POST("/dispenser-operations/api/v1/deliveries/contact-center", deliveryHandler.CreateDeliveryFromContactCenter)
 
 	// Rutas públicas de términos (para que el cliente pueda aceptar/rechazar)
 	publicAPI := router.Group("/dispenser-operations/api/v1")
