@@ -23,6 +23,7 @@ func RegisterDeliveryRoutes(router *gin.RouterGroup, handler *transport.Delivery
 func RegisterPublicDeliveryRoutes(router *gin.RouterGroup, handler *transport.DeliveryHandler) {
 	router.GET("/deliveries/taller-prep", handler.GetTallerPrep)
 	router.GET("/deliveries/contact-center/token", handler.GetTokenByFechaAndCta)
+	router.POST("/deliveries/contact-center", handler.CreateDeliveryFromContactCenter)
 }
 
 func RegisterDeliveryWithTermsRoutes(router *gin.RouterGroup, handler *transport.DeliveryWithTermsHandler) {
