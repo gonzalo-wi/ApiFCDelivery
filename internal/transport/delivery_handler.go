@@ -343,6 +343,28 @@ func (h *DeliveryHandler) CreateDeliveryFromInfobip(c *gin.Context) {
 		return
 	}
 
+	// Auditar creación desde Infobip con la request completa
+	if h.auditService != nil {
+		h.auditService.LogDeliveryCreated(
+			ctx,
+			delivery.ID,
+			models.ActorExternal,
+			"infobip",
+			delivery,
+			map[string]interface{}{
+				"source":       "infobip",
+				"request":      req,
+				"nro_cta":      req.NroCta,
+				"nro_rto":      req.NroRto,
+				"tipo_entrega": req.TipoEntrega,
+				"cantidad":     req.Tipos.P + req.Tipos.M,
+				"session_id":   req.SessionID,
+				"ip_address":   c.ClientIP(),
+				"user_agent":   c.Request.UserAgent(),
+			},
+		)
+	}
+
 	response := dto.InfobipDeliveryResponse{
 		Token:   delivery.Token,
 		Message: "Entrega creada exitosamente",
@@ -389,6 +411,28 @@ func (h *DeliveryHandler) CreateDeliveryFromContactCenter(c *gin.Context) {
 			"message": err.Error(),
 		})
 		return
+	}
+
+	// Auditar creación desde Contact Center con la request completa
+	if h.auditService != nil {
+		h.auditService.LogDeliveryCreated(
+			ctx,
+			delivery.ID,
+			models.ActorExternal,
+			"contact_center",
+			delivery,
+			map[string]interface{}{
+				"source":       "contact_center",
+				"request":      req,
+				"nro_cta":      req.NroCta,
+				"nro_rto":      req.NroRto,
+				"tipo_entrega": req.TipoEntrega,
+				"cantidad":     req.Tipos.P + req.Tipos.M,
+				"session_id":   req.SessionID,
+				"ip_address":   c.ClientIP(),
+				"user_agent":   c.Request.UserAgent(),
+			},
+		)
 	}
 
 	response := dto.InfobipDeliveryResponse{
