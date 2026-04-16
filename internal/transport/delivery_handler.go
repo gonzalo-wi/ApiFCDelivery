@@ -334,7 +334,7 @@ func (h *DeliveryHandler) CreateDeliveryFromInfobip(c *gin.Context) {
 		return
 	}
 
-	delivery, err := h.service.CreateFromInfobip(ctx, req)
+	delivery, idempotent, err := h.service.CreateFromInfobip(ctx, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   constants.MsgServerError,
@@ -343,7 +343,7 @@ func (h *DeliveryHandler) CreateDeliveryFromInfobip(c *gin.Context) {
 		return
 	}
 
-	// Auditar creación desde Infobip con la request completa
+	// Auditar siempre la request de Infobip (nueva o idempotente)
 	if h.auditService != nil {
 		h.auditService.LogDeliveryCreated(
 			ctx,
@@ -353,6 +353,7 @@ func (h *DeliveryHandler) CreateDeliveryFromInfobip(c *gin.Context) {
 			delivery,
 			map[string]interface{}{
 				"source":       "infobip",
+				"idempotent":   idempotent,
 				"request":      req,
 				"nro_cta":      req.NroCta,
 				"nro_rto":      req.NroRto,
@@ -404,7 +405,7 @@ func (h *DeliveryHandler) CreateDeliveryFromContactCenter(c *gin.Context) {
 		return
 	}
 
-	delivery, err := h.service.CreateFromInfobip(ctx, req)
+	delivery, idempotent, err := h.service.CreateFromInfobip(ctx, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   constants.MsgServerError,
@@ -413,7 +414,7 @@ func (h *DeliveryHandler) CreateDeliveryFromContactCenter(c *gin.Context) {
 		return
 	}
 
-	// Auditar creación desde Contact Center con la request completa
+	// Auditar siempre la request de Contact Center (nueva o idempotente)
 	if h.auditService != nil {
 		h.auditService.LogDeliveryCreated(
 			ctx,
@@ -423,6 +424,7 @@ func (h *DeliveryHandler) CreateDeliveryFromContactCenter(c *gin.Context) {
 			delivery,
 			map[string]interface{}{
 				"source":       "contact_center",
+				"idempotent":   idempotent,
 				"request":      req,
 				"nro_cta":      req.NroCta,
 				"nro_rto":      req.NroRto,

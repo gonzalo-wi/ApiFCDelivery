@@ -24,7 +24,7 @@ type DeliveryService interface {
 	Create(ctx context.Context, delivery *models.Delivery) error
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
-	CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, error)
+	CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, bool, error)
 }
 type deliveryService struct {
 	store        store.DeliveryStore
@@ -89,29 +89,50 @@ func (s *deliveryService) Delete(ctx context.Context, id int) error {
 // CreateFromInfobip crea una entrega desde el chatbot de Infobip
 // Implementa idempotencia: si ya existe una entrega con el mismo session_id, la devuelve
 // Maneja concurrencia de forma segura mediante índice único en BD y transacciones
-func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, error) {
+func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, bool, error) {
+	// Loguear siempre la request entrante para diagnóstico
+	log.Info().
+		Str("session_id", req.SessionID).
+		Str("nro_cta", req.NroCta).
+		Str("nro_rto", req.NroRto).
+		Str("email", req.Email).
+		Str("tipo_entrega", string(req.TipoEntrega)).
+		Str("entregado_por", string(req.EntregadoPor)).
+		Str("fecha_accion", req.FechaAccion).
+		Uint("tipos_p", req.Tipos.P).
+		Uint("tipos_m", req.Tipos.M).
+		Msg("CreateFromInfobip: request recibida")
+
 	// Verificar si ya existe una entrega con este session_id (idempotencia)
 	if req.SessionID != "" {
 		existingDelivery, err := s.store.FindBySessionID(ctx, req.SessionID)
 		if err != nil {
-			return nil, fmt.Errorf("error verificando session_id existente: %w", err)
+			return nil, false, fmt.Errorf("error verificando session_id existente: %w", err)
 		}
 		if existingDelivery != nil {
 			// Ya existe una entrega con este session_id, devolverla (idempotente)
-			return existingDelivery, nil
+			log.Warn().
+				Str("session_id", req.SessionID).
+				Int("existing_delivery_id", existingDelivery.ID).
+				Str("existing_token", existingDelivery.Token).
+				Str("existing_nro_cta", existingDelivery.NroCta).
+				Str("request_nro_cta", req.NroCta).
+				Str("request_nro_rto", req.NroRto).
+				Msg("CreateFromInfobip: session_id duplicado, retornando entrega existente (idempotente)")
+			return existingDelivery, true, nil
 		}
 	}
 
 	// Validar cantidad total de dispensers
 	cantidadTotal := req.Tipos.P + req.Tipos.M
 	if err := validateDispenserQuantity(cantidadTotal); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// Parsear fecha de acción
 	fechaAccion, err := parseFechaAccion(req.FechaAccion)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// Crear items de dispensers
@@ -142,12 +163,12 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 
 	// Guardar en base de datos (la concurrencia se maneja a nivel de BD)
 	if err := s.store.Create(ctx, delivery); err != nil {
-		return nil, fmt.Errorf("error creando entrega: %w", err)
+		return nil, false, fmt.Errorf("error creando entrega: %w", err)
 	}
 
 	// NO enviar email aquí, se enviará cuando se complete la entrega
 
-	return delivery, nil
+	return delivery, false, nil
 }
 
 // generar token de 4 digitos
