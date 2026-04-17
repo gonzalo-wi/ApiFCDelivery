@@ -129,6 +129,11 @@ func main() {
 
 	router := routes.SetupRouter(deliveryHandler, workOrderHandler, termsSessionHandler, deliveryWithTermsHandler, mobileDeliveryHandler, auditHandler, cfg)
 
+	// Scheduler: cancelar deliveries pendientes cuya fecha_accion ya pasó (se ejecuta a medianoche)
+	scheduler := service.NewScheduler(deliveryStore)
+	scheduler.Start()
+	defer scheduler.Stop()
+
 	log.Info().Str("port", cfg.Port).Msgf(constants.MsgServerRunning, cfg.Port)
 
 	if err := router.Run("0.0.0.0:" + cfg.Port); err != nil {

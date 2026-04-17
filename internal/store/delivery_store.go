@@ -22,6 +22,7 @@ type DeliveryStore interface {
 	Create(ctx context.Context, delivery *models.Delivery) error
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
+	CancelExpiredPending(ctx context.Context) (int64, error)
 }
 
 type deliveryStore struct {
@@ -166,4 +167,20 @@ func (s *deliveryStore) Delete(ctx context.Context, id int) error {
 		return fmt.Errorf(constants.ErrDeleteDelivery, id, err)
 	}
 	return nil
+}
+
+// CancelExpiredPending cancela todos los deliveries en estado Pendiente cuya fecha_accion ya pasó
+func (s *deliveryStore) CancelExpiredPending(ctx context.Context) (int64, error) {
+	today := time.Now().Truncate(24 * time.Hour)
+	result := s.db.WithContext(ctx).
+		Model(&models.Delivery{}).
+		Where("estado = ? AND fecha_accion < ?", models.Pendiente, today).
+		Updates(map[string]interface{}{
+			"estado":     models.Cancelado,
+			"updated_at": time.Now(),
+		})
+	if result.Error != nil {
+		return 0, fmt.Errorf("error cancelando deliveries expirados: %w", result.Error)
+	}
+	return result.RowsAffected, nil
 }
