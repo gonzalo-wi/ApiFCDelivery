@@ -68,6 +68,7 @@ type MobileCompleteDeliveryResponse struct {
 	CreatedAt           string                      `json:"createdAt"`
 	TipoAccion          string                      `json:"tipoAccion"`
 	Token               string                      `json:"token"`
+	OrderNumber         string                      `json:"order_number"`
 	ItemDispensers      []ItemDispenserCompletedDTO `json:"item_dispensers"`
 	ValidatedDispensers []string                    `json:"validated_dispensers,omitempty"`
 	WorkOrderQueued     bool                        `json:"work_order_queued"`

@@ -161,6 +161,9 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 	// Guardar los códigos reales de dispensers validados
 	delivery.ValidatedDispensers = models.StringArray(req.ValidatedDispensers)
 
+	// Guardar el número de orden de trabajo asignado por la app móvil
+	delivery.OrderNumber = req.OrderNumber
+
 	// 6. Crear items de dispensers basándose en los códigos validados
 	// Agrupamos por tipo (inferido del original o mantenemos la estructura original)
 	newItemDispensers := make([]models.ItemDispenser, 0)
@@ -264,6 +267,7 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		CreatedAt:           delivery.CreatedAt.Format("2006-01-02"),
 		TipoAccion:          string(delivery.TipoEntrega),
 		Token:               delivery.Token,
+		OrderNumber:         delivery.OrderNumber,
 		ItemDispensers:      itemDispensersResponse,
 		ValidatedDispensers: []string(delivery.ValidatedDispensers),
 		WorkOrderQueued:     workOrderQueued,

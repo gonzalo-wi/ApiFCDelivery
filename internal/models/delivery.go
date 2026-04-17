@@ -27,6 +27,7 @@ type Delivery struct {
 	NroRto              string          `gorm:"not null" json:"nro_rto" binding:"required,min=1,max=50"`
 	ItemDispensers      []ItemDispenser `gorm:"foreignKey:DeliveryID" json:"item_dispensers"`
 	ValidatedDispensers StringArray     `gorm:"type:jsonb" json:"validated_dispensers,omitempty"`
+	OrderNumber         string          `gorm:"type:varchar(50)" json:"order_number,omitempty"`
 	Cantidad            uint            `gorm:"not null" json:"cantidad" binding:"required,min=1,max=3"`
 	Token               string          `gorm:"not null" json:"token"`
 	Estado              EstadoEntrega   `gorm:"not null" json:"estado" binding:"required,oneof=Pendiente Completado Cancelado"`
