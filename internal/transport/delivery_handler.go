@@ -444,3 +444,38 @@ func (h *DeliveryHandler) CreateDeliveryFromContactCenter(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, response)
 }
+
+// GetPendingByNroCta busca entregas pendientes por número de cuenta (para Infobip)
+func (h *DeliveryHandler) GetPendingByNroCta(c *gin.Context) {
+	nroCta := c.Query("nro_cta")
+	if nroCta == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "nro_cta es requerido"})
+		return
+	}
+
+	deliveries, err := h.service.FindPendingByNroCta(c.Request.Context(), nroCta)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	items := make([]dto.InfobipPendingDeliveryDTO, 0, len(deliveries))
+	for _, d := range deliveries {
+		items = append(items, dto.InfobipPendingDeliveryDTO{
+			DeliveryID:  d.ID,
+			NroCta:      d.NroCta,
+			NroRto:      d.NroRto,
+			Cantidad:    d.Cantidad,
+			TipoEntrega: string(d.TipoEntrega),
+			FechaAccion: d.FechaAccion.Format("2006-01-02"),
+			Token:       d.Token,
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.InfobipPendingResponse{
+		NroCta:     nroCta,
+		HasPending: len(items) > 0,
+		Count:      len(items),
+		Deliveries: items,
+	})
+}

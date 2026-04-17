@@ -55,3 +55,22 @@ type InfobipDeliveryResponse struct {
 	Token   string `json:"token"`
 	Message string `json:"message"`
 }
+
+// InfobipPendingDeliveryDTO respuesta simplificada de entrega pendiente para Infobip
+type InfobipPendingDeliveryDTO struct {
+	DeliveryID  int    `json:"delivery_id"`
+	NroCta      string `json:"nro_cta"`
+	NroRto      string `json:"nro_rto"`
+	Cantidad    uint   `json:"cantidad"`
+	TipoEntrega string `json:"tipo_entrega"`
+	FechaAccion string `json:"fecha_accion"`
+	Token       string `json:"token"`
+}
+
+// InfobipPendingResponse respuesta de consulta de entregas pendientes para Infobip
+type InfobipPendingResponse struct {
+	NroCta     string                      `json:"nro_cta"`
+	HasPending bool                        `json:"has_pending"`
+	Count      int                         `json:"count"`
+	Deliveries []InfobipPendingDeliveryDTO `json:"deliveries"`
+}

@@ -25,6 +25,7 @@ type DeliveryService interface {
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
 	CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, bool, error)
+	FindPendingByNroCta(ctx context.Context, nroCta string) ([]models.Delivery, error)
 }
 type deliveryService struct {
 	store        store.DeliveryStore
@@ -84,6 +85,10 @@ func (s *deliveryService) Update(ctx context.Context, delivery *models.Delivery)
 
 func (s *deliveryService) Delete(ctx context.Context, id int) error {
 	return s.store.Delete(ctx, id)
+}
+
+func (s *deliveryService) FindPendingByNroCta(ctx context.Context, nroCta string) ([]models.Delivery, error) {
+	return s.store.FindPendingByNroCta(ctx, nroCta)
 }
 
 // CreateFromInfobip crea una entrega desde el chatbot de Infobip

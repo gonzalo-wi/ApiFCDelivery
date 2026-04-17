@@ -23,6 +23,7 @@ type DeliveryStore interface {
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
 	CancelExpiredPending(ctx context.Context) (int64, error)
+	FindPendingByNroCta(ctx context.Context, nroCta string) ([]models.Delivery, error)
 }
 
 type deliveryStore struct {
@@ -167,6 +168,18 @@ func (s *deliveryStore) Delete(ctx context.Context, id int) error {
 		return fmt.Errorf(constants.ErrDeleteDelivery, id, err)
 	}
 	return nil
+}
+
+// FindPendingByNroCta busca deliveries en estado Pendiente para un número de cuenta
+func (s *deliveryStore) FindPendingByNroCta(ctx context.Context, nroCta string) ([]models.Delivery, error) {
+	var deliveries []models.Delivery
+	if err := s.db.WithContext(ctx).
+		Preload("ItemDispensers").
+		Where("nro_cta = ? AND estado = ?", nroCta, models.Pendiente).
+		Find(&deliveries).Error; err != nil {
+		return nil, fmt.Errorf("error buscando deliveries pendientes por nro_cta: %w", err)
+	}
+	return deliveries, nil
 }
 
 // CancelExpiredPending cancela todos los deliveries en estado Pendiente cuya fecha_accion ya pasó
