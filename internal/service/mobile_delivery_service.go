@@ -311,16 +311,17 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 	}
 
 	workOrderReq := &dto.WorkOrderRequest{
-		NroCta:     delivery.NroCta,
-		Name:       delivery.Name,
-		Address:    delivery.Address,
-		Locality:   delivery.Locality,
-		NroRto:     delivery.NroRto,
-		CreatedAt:  delivery.FechaAccion.Format("2006-01-02"),
-		AcceptedAt: acceptedAtStr,
-		Dispensers: dispensers,
-		TipoAccion: string(delivery.TipoEntrega),
-		Token:      delivery.Token,
+		NroCta:      delivery.NroCta,
+		Name:        delivery.Name,
+		Address:     delivery.Address,
+		Locality:    delivery.Locality,
+		NroRto:      delivery.NroRto,
+		CreatedAt:   delivery.FechaAccion.Format("2006-01-02"),
+		AcceptedAt:  acceptedAtStr,
+		Dispensers:  dispensers,
+		TipoAccion:  string(delivery.TipoEntrega),
+		Token:       delivery.Token,
+		OrderNumber: delivery.OrderNumber,
 	}
 
 	// 3. Generar PDF

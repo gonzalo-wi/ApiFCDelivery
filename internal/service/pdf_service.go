@@ -26,9 +26,13 @@ func NewPDFService(workOrderStore store.WorkOrderStore) PDFService {
 }
 
 func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.WorkOrderRequest) ([]byte, string, error) {
-	orderNumber, err := s.workOrderStore.GetNextOrderNumber(ctx)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to get next order number: %w", err)
+	orderNumber := workOrder.OrderNumber
+	if orderNumber == "" {
+		var err error
+		orderNumber, err = s.workOrderStore.GetNextOrderNumber(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to get next order number: %w", err)
+		}
 	}
 	woModel := &models.WorkOrder{
 		OrderNumber: orderNumber,
@@ -257,8 +261,7 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 
 	// Generar el PDF en memoria
 	var buf bytes.Buffer
-	err = pdf.Output(&buf)
-	if err != nil {
+	if err := pdf.Output(&buf); err != nil {
 		return nil, "", err
 	}
 
