@@ -1,5 +1,12 @@
 package dto
 
+// OperationMessage - Operación individual incluida en el mensaje de OT
+type OperationMessage struct {
+	Type                   string `json:"type"`
+	InstalledDispenserCode string `json:"installed_dispenser_code,omitempty"`
+	RetiredDispenserCode   string `json:"retired_dispenser_code,omitempty"`
+}
+
 // WorkOrderMessageDTO - Mensaje que se publica en RabbitMQ para crear orden de trabajo
 type WorkOrderMessageDTO struct {
 	OrderNumber string             `json:"order_number"` // Número de orden proporcionado por app móvil
@@ -12,11 +19,6 @@ type WorkOrderMessageDTO struct {
 	CreatedAt   string             `json:"createdAt"`
 	TipoAccion  string             `json:"tipoAccion"`
 	Token       string             `json:"token"`
-	Dispensers  []DispenserMessage `json:"dispensers"`
+	Operations  []OperationMessage `json:"operations"`
 	DeliveryID  int                `json:"deliveryId"` // Para actualizar después
-}
-
-// DispenserMessage - Información de dispenser en el mensaje
-type DispenserMessage struct {
-	NroSerie string `json:"nro_serie"`
 }

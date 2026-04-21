@@ -9,7 +9,8 @@ type WorkOrderRequest struct {
 	CreatedAt   string                      `json:"createdAt" binding:"required"`
 	AcceptedAt  string                      `json:"acceptedAt" binding:"omitempty"`
 	Dispensers  []WorkOrderDispenserRequest `json:"dispensers"`
-	TipoAccion  string                      `json:"tipoAccion" binding:"required,oneof=Instalacion Retiro Recambio"`
+	Operations  []DispenserOperation        `json:"operations"`
+	TipoAccion  string                      `json:"tipoAccion" binding:"required,oneof=Instalacion Retiro Recambio Mixto Service"`
 	Token       string                      `json:"token" binding:"omitempty,len=4,numeric"`
 	OrderNumber string                      `json:"order_number" binding:"omitempty"`
 }

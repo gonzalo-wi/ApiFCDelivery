@@ -228,7 +228,7 @@ func (s *MockEmailService) SendHTMLEmailWithPDFBytes(ctx context.Context, to str
 
 // WorkOrderPDFGenerator maneja la generación de PDFs para órdenes de trabajo
 type WorkOrderPDFGenerator interface {
-	GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, dispensers []dto.DispenserMessage) (string, error)
+	GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, operations []dto.OperationMessage) (string, error)
 }
 
 // MockWorkOrderPDFGenerator es una implementación de prueba
@@ -238,13 +238,13 @@ func NewMockPDFService() WorkOrderPDFGenerator {
 	return &MockWorkOrderPDFGenerator{}
 }
 
-func (s *MockWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, dispensers []dto.DispenserMessage) (string, error) {
+func (s *MockWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, operations []dto.OperationMessage) (string, error) {
 	pdfPath := fmt.Sprintf("/tmp/work_order_%s.pdf", workOrder.OrderNumber)
 
 	log.Info().
 		Str("order_number", workOrder.OrderNumber).
 		Str("pdf_path", pdfPath).
-		Int("dispensers_count", len(dispensers)).
+		Int("operations_count", len(operations)).
 		Msg("📄 [MOCK] PDF generated (not really, this is a mock)")
 
 	// TODO: Implementar generación real de PDF con gofpdf o similar

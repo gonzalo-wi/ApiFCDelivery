@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"GoFrioCalor/internal/dto"
@@ -24,6 +25,7 @@ type mobileDeliveryService struct {
 	publisher         *RabbitMQPublisher
 	pdfService        PDFService
 	emailService      EmailService
+	clientLookup      ClientLookupService
 }
 
 func NewMobileDeliveryService(deliveryStore store.DeliveryStore, publisher *RabbitMQPublisher) MobileDeliveryService {
@@ -33,16 +35,18 @@ func NewMobileDeliveryService(deliveryStore store.DeliveryStore, publisher *Rabb
 		publisher:         publisher,
 		pdfService:        nil,
 		emailService:      nil,
+		clientLookup:      nil,
 	}
 }
 
-func NewMobileDeliveryServiceWithServices(deliveryStore store.DeliveryStore, termsSessionStore store.TermsSessionStore, publisher *RabbitMQPublisher, pdfService PDFService, emailService EmailService) MobileDeliveryService {
+func NewMobileDeliveryServiceWithServices(deliveryStore store.DeliveryStore, termsSessionStore store.TermsSessionStore, publisher *RabbitMQPublisher, pdfService PDFService, emailService EmailService, clientLookup ClientLookupService) MobileDeliveryService {
 	return &mobileDeliveryService{
 		deliveryStore:     deliveryStore,
 		termsSessionStore: termsSessionStore,
 		publisher:         publisher,
 		pdfService:        pdfService,
 		emailService:      emailService,
+		clientLookup:      clientLookup,
 	}
 }
 
@@ -102,49 +106,62 @@ func (s *mobileDeliveryService) ValidateToken(ctx context.Context, req dto.Valid
 	}, nil
 }
 
-// CompleteDelivery marca el delivery como completado y publica mensaje a RabbitMQ
+// CompleteDelivery marca el delivery como completado y publica mensaje a RabbitMQ.
+// Para instalaciones pre-coordinadas (delivery_id > 0) valida token y estado.
+// Para retiros y recambios (delivery_id == 0) crea un delivery nuevo en el momento.
 func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.MobileCompleteDeliveryRequest) (*dto.MobileCompleteDeliveryResponse, error) {
-	// 1. Obtener el delivery
-	delivery, err := s.deliveryStore.FindByID(ctx, req.DeliveryID)
-	if err != nil {
-		log.Error().Err(err).Int("delivery_id", req.DeliveryID).Msg("Error fetching delivery")
-		return nil, fmt.Errorf("error buscando delivery: %w", err)
+	tipoEntrega := deriveTipoEntrega(req.Operations)
+
+	var delivery *models.Delivery
+	var err error
+
+	if req.DeliveryID > 0 {
+		// --- Flujo instalación pre-coordinada ---
+		delivery, err = s.deliveryStore.FindByID(ctx, req.DeliveryID)
+		if err != nil {
+			log.Error().Err(err).Int("delivery_id", req.DeliveryID).Msg("Error fetching delivery")
+			return nil, fmt.Errorf("error buscando delivery: %w", err)
+		}
+
+		if req.Token != "" && delivery.Token != req.Token {
+			log.Warn().Int("delivery_id", req.DeliveryID).Msg("Invalid token for completing delivery")
+			return nil, fmt.Errorf("token inválido")
+		}
+
+		if delivery.Estado != models.Pendiente {
+			log.Warn().
+				Int("delivery_id", req.DeliveryID).
+				Str("estado", string(delivery.Estado)).
+				Msg("Delivery already processed")
+			return nil, fmt.Errorf("la entrega ya fue procesada (estado: %s)", delivery.Estado)
+		}
+	} else {
+		// --- Flujo retiro/recambio no coordinado: crear delivery en el momento ---
+		nroRto := req.NroRto
+		if nroRto == "" {
+			nroRto = req.OrderNumber
+		}
+		delivery = &models.Delivery{
+			NroCta:       req.NroCta,
+			Name:         req.Name,
+			Email:        req.Email,
+			Address:      req.Address,
+			Locality:     req.Locality,
+			NroRto:       nroRto,
+			Estado:       models.Pendiente,
+			TipoEntrega:  tipoEntrega,
+			EntregadoPor: models.Tecnico,
+			Cantidad:     uint(len(req.Operations)),
+			FechaAccion:  models.CustomDate{Time: time.Now()},
+		}
+		if err = s.deliveryStore.Create(ctx, delivery); err != nil {
+			log.Error().Err(err).Msg("Error creating on-the-fly delivery")
+			return nil, fmt.Errorf("error creando delivery: %w", err)
+		}
+		log.Info().Int("delivery_id", delivery.ID).Str("tipo", string(tipoEntrega)).Msg("On-the-fly delivery created")
 	}
 
-	// 2. Validar token
-	if delivery.Token != req.Token {
-		log.Warn().
-			Int("delivery_id", req.DeliveryID).
-			Msg("Invalid token for completing delivery")
-		return nil, fmt.Errorf("token inválido")
-	}
-
-	// 3. Validar estado
-	if delivery.Estado != models.Pendiente {
-		log.Warn().
-			Int("delivery_id", req.DeliveryID).
-			Str("estado", string(delivery.Estado)).
-			Msg("Delivery already processed")
-		return nil, fmt.Errorf("la entrega ya fue procesada (estado: %s)", delivery.Estado)
-	}
-
-	// 4. Validar que se recibieron dispensers validados
-	totalEntregado := uint(len(req.ValidatedDispensers))
-	if totalEntregado == 0 {
-		log.Warn().
-			Int("delivery_id", req.DeliveryID).
-			Msg("No dispensers were delivered")
-		return nil, fmt.Errorf("debe entregar al menos un dispenser")
-	}
-
-	log.Info().
-		Int("delivery_id", req.DeliveryID).
-		Uint("expected", delivery.Cantidad).
-		Uint("delivered", totalEntregado).
-		Int("validated_dispensers", len(req.ValidatedDispensers)).
-		Msg("Delivery completed with validated dispensers")
-
-	// 5. Actualizar datos del cliente desde la app móvil
+	// Actualizar datos del cliente si vienen en el request
 	if req.Name != "" {
 		delivery.Name = req.Name
 	}
@@ -158,60 +175,38 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		delivery.Locality = req.Locality
 	}
 
-	// Guardar los códigos reales de dispensers validados
-	delivery.ValidatedDispensers = models.StringArray(req.ValidatedDispensers)
-
-	// Guardar el número de orden de trabajo asignado por la app móvil
-	delivery.OrderNumber = req.OrderNumber
-
-	// 6. Crear items de dispensers basándose en los códigos validados
-	// Agrupamos por tipo (inferido del original o mantenemos la estructura original)
-	newItemDispensers := make([]models.ItemDispenser, 0)
-
-	// Si el delivery original tiene items con tipos, mantenemos la proporción
-	// Si no, creamos un solo item con todos los dispensers
-	if len(delivery.ItemDispensers) > 0 {
-		// Mantener la estructura de tipos original pero actualizar cantidad real entregada
-		for _, origItem := range delivery.ItemDispensers {
-			newItemDispensers = append(newItemDispensers, models.ItemDispenser{
-				Tipo:     origItem.Tipo,
-				Cantidad: origItem.Cantidad,
-			})
+	// Guardar solo los dispensers instalados en ValidatedDispensers
+	installed := make([]string, 0, len(req.Operations))
+	for _, op := range req.Operations {
+		if op.InstalledDispenserCode != "" {
+			installed = append(installed, op.InstalledDispenserCode)
 		}
-	} else {
-		// Crear un item genérico con todos los dispensers
-		newItemDispensers = append(newItemDispensers, models.ItemDispenser{
-			Tipo:     models.TipoDispenserPie, // Por defecto tipo P
-			Cantidad: totalEntregado,
-		})
 	}
-
-	// 7. Actualizar items, estado y cantidad
-	delivery.ItemDispensers = newItemDispensers
+	delivery.ValidatedDispensers = models.StringArray(installed)
+	delivery.TipoEntrega = tipoEntrega
+	delivery.OrderNumber = req.OrderNumber
 	delivery.Estado = models.Completado
-	delivery.Cantidad = totalEntregado // Cantidad real entregada
+	delivery.Cantidad = uint(len(req.Operations))
 	delivery.UpdatedAt = time.Now()
 
-	if err := s.deliveryStore.Update(ctx, delivery); err != nil {
-		log.Error().Err(err).Int("delivery_id", req.DeliveryID).Msg("Error updating delivery status")
+	if err = s.deliveryStore.Update(ctx, delivery); err != nil {
+		log.Error().Err(err).Int("delivery_id", delivery.ID).Msg("Error updating delivery")
 		return nil, fmt.Errorf("error actualizando delivery: %w", err)
 	}
 
 	log.Info().
-		Int("delivery_id", req.DeliveryID).
-		Str("name", delivery.Name).
-		Str("locality", delivery.Locality).
-		Msg("Client data updated from mobile app")
+		Int("delivery_id", delivery.ID).
+		Str("tipo", string(tipoEntrega)).
+		Int("operations", len(req.Operations)).
+		Msg("Delivery completed")
 
-	log.Info().
-		Int("delivery_id", req.DeliveryID).
-		Msg("Delivery marked as completed")
-
-	// 8. Construir mensaje para RabbitMQ con los códigos reales de dispensers validados
-	dispensersMsg := make([]dto.DispenserMessage, 0, len(req.ValidatedDispensers))
-	for _, dispenserCode := range req.ValidatedDispensers {
-		dispensersMsg = append(dispensersMsg, dto.DispenserMessage{
-			NroSerie: dispenserCode,
+	// Construir mensaje para RabbitMQ
+	opsMsg := make([]dto.OperationMessage, 0, len(req.Operations))
+	for _, op := range req.Operations {
+		opsMsg = append(opsMsg, dto.OperationMessage{
+			Type:                   op.Type,
+			InstalledDispenserCode: op.InstalledDispenserCode,
+			RetiredDispenserCode:   op.RetiredDispenserCode,
 		})
 	}
 
@@ -223,65 +218,87 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		Address:     delivery.Address,
 		Locality:    delivery.Locality,
 		NroRto:      delivery.NroRto,
-		CreatedAt:   delivery.CreatedAt.Format("2006-01-02"),
-		TipoAccion:  string(delivery.TipoEntrega),
+		CreatedAt:   time.Now().Format("2006-01-02"),
+		TipoAccion:  string(tipoEntrega),
 		Token:       delivery.Token,
-		Dispensers:  dispensersMsg,
+		Operations:  opsMsg,
 		DeliveryID:  delivery.ID,
 	}
 
-	// 9. Publicar a RabbitMQ
 	workOrderQueued := false
-	err = s.publisher.PublishWorkOrder(ctx, workOrderMsg)
-	if err != nil {
-		log.Error().Err(err).Int("delivery_id", req.DeliveryID).Msg("Error publishing work order message")
+	if err = s.publisher.PublishWorkOrder(ctx, workOrderMsg); err != nil {
+		log.Error().Err(err).Int("delivery_id", delivery.ID).Msg("Error publishing work order")
 	} else {
 		workOrderQueued = true
-		log.Info().
-			Int("delivery_id", req.DeliveryID).
-			Int("dispensers_count", len(req.ValidatedDispensers)).
-			Msg("Work order message published successfully with validated dispensers")
+		log.Info().Int("delivery_id", delivery.ID).Int("operations", len(opsMsg)).Msg("Work order queued")
 	}
 
-	// 10. Generar PDF y enviar email si está configurado
-	if s.pdfService != nil && s.emailService != nil && delivery.Email != "" {
-		go s.sendCompletionEmailWithPDF(context.Background(), delivery, req.ValidatedDispensers)
+	if s.pdfService != nil && s.emailService != nil {
+		go s.sendCompletionEmailWithPDF(context.Background(), delivery, req.Operations)
 	}
 
-	// 11. Construir respuesta con items de dispensers entregados
-	itemDispensersResponse := make([]dto.ItemDispenserCompletedDTO, 0, len(delivery.ItemDispensers))
-	for _, item := range delivery.ItemDispensers {
-		itemDispensersResponse = append(itemDispensersResponse, dto.ItemDispenserCompletedDTO{
-			Tipo:     string(item.Tipo),
-			Cantidad: item.Cantidad,
+	// Mapear operaciones a response
+	opsCompleted := make([]dto.OperationCompletedDTO, 0, len(req.Operations))
+	for _, op := range req.Operations {
+		opsCompleted = append(opsCompleted, dto.OperationCompletedDTO{
+			Type:                   op.Type,
+			InstalledDispenserCode: op.InstalledDispenserCode,
+			RetiredDispenserCode:   op.RetiredDispenserCode,
 		})
 	}
 
 	return &dto.MobileCompleteDeliveryResponse{
-		NroCta:              delivery.NroCta,
-		Name:                delivery.Name,
-		Email:               delivery.Email,
-		Address:             delivery.Address,
-		Locality:            delivery.Locality,
-		NroRto:              delivery.NroRto,
-		CreatedAt:           delivery.CreatedAt.Format("2006-01-02"),
-		TipoAccion:          string(delivery.TipoEntrega),
-		Token:               delivery.Token,
-		OrderNumber:         delivery.OrderNumber,
-		ItemDispensers:      itemDispensersResponse,
-		ValidatedDispensers: []string(delivery.ValidatedDispensers),
-		WorkOrderQueued:     workOrderQueued,
+		DeliveryID:      delivery.ID,
+		NroCta:          delivery.NroCta,
+		Name:            delivery.Name,
+		Email:           delivery.Email,
+		Address:         delivery.Address,
+		Locality:        delivery.Locality,
+		NroRto:          delivery.NroRto,
+		TipoAccion:      string(tipoEntrega),
+		OrderNumber:     req.OrderNumber,
+		Operations:      opsCompleted,
+		WorkOrderQueued: workOrderQueued,
 	}, nil
 }
 
+// deriveTipoEntrega infiere el TipoEntrega a partir del conjunto de operaciones
+func deriveTipoEntrega(ops []dto.DispenserOperation) models.TipoEntrega {
+	types := make(map[string]bool)
+	for _, op := range ops {
+		types[op.Type] = true
+	}
+	if len(types) > 1 {
+		return models.Mixto
+	}
+	if types["installation"] {
+		return models.Instalacion
+	}
+	if types["retirement"] {
+		return models.Retiro
+	}
+	return models.Recambio
+}
+
 // sendCompletionEmailWithPDF genera el PDF de la orden de trabajo y envía el email de confirmación
-func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, delivery *models.Delivery, validatedDispensers []string) {
+func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, delivery *models.Delivery, operations []dto.DispenserOperation) {
 	localLog := log.With().
 		Int("delivery_id", int(delivery.ID)).
-		Str("email", delivery.Email).
+		Str("nro_cta", delivery.NroCta).
 		Logger()
 
 	localLog.Info().Msg("Generating PDF and sending completion email")
+
+	// Resolver email del destinatario
+	// Para retiros/recambios el delivery puede no tener email; se consulta la API externa
+	emailTo := strings.TrimSpace(delivery.Email)
+	if emailTo == "" && s.clientLookup != nil {
+		emailTo = s.clientLookup.GetClientEmail(ctx, delivery.NroCta)
+	} else if emailTo == "" {
+		emailTo = fallbackClientEmail
+	}
+
+	localLog.Info().Str("email_to", emailTo).Msg("Email recipient resolved")
 
 	// 1. Obtener fecha de aceptación de términos si existe
 	acceptedAtStr := ""
@@ -303,13 +320,6 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 	}
 
 	// 2. Construir WorkOrderRequest para generar el PDF
-	dispensers := make([]dto.WorkOrderDispenserRequest, 0, len(validatedDispensers))
-	for _, code := range validatedDispensers {
-		dispensers = append(dispensers, dto.WorkOrderDispenserRequest{
-			NroSerie: code,
-		})
-	}
-
 	workOrderReq := &dto.WorkOrderRequest{
 		NroCta:      delivery.NroCta,
 		Name:        delivery.Name,
@@ -318,7 +328,7 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 		NroRto:      delivery.NroRto,
 		CreatedAt:   delivery.FechaAccion.Format("2006-01-02"),
 		AcceptedAt:  acceptedAtStr,
-		Dispensers:  dispensers,
+		Operations:  operations,
 		TipoAccion:  string(delivery.TipoEntrega),
 		Token:       delivery.Token,
 		OrderNumber: delivery.OrderNumber,
@@ -334,12 +344,18 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 	localLog.Info().Str("order_number", orderNumber).Msg("PDF generated successfully")
 
 	// 3. Crear HTML del email de instalación completada
-	emailHTML := s.buildCompletionEmailHTML(delivery, validatedDispensers, orderNumber)
+	installedCodes := make([]string, 0)
+	for _, op := range operations {
+		if op.InstalledDispenserCode != "" {
+			installedCodes = append(installedCodes, op.InstalledDispenserCode)
+		}
+	}
+	emailHTML := s.buildCompletionEmailHTML(delivery, installedCodes, orderNumber)
 
 	// 4. Enviar email con PDF adjunto
 	err = s.emailService.SendHTMLEmailWithPDFBytes(
 		ctx,
-		delivery.Email,
+		emailTo,
 		"Instalación Completada - El Jumillano",
 		emailHTML,
 		pdfBytes,

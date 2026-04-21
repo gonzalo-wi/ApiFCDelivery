@@ -10,6 +10,8 @@ const (
 	Instalacion TipoEntrega   = "Instalacion"
 	Retiro      TipoEntrega   = "Retiro"
 	Service     TipoEntrega   = "Service"
+	Recambio    TipoEntrega   = "Recambio"
+	Mixto       TipoEntrega   = "Mixto"
 	Pendiente   EstadoEntrega = "Pendiente"
 	Completado  EstadoEntrega = "Completado"
 	Cancelado   EstadoEntrega = "Cancelado"
@@ -31,7 +33,7 @@ type Delivery struct {
 	Cantidad            uint            `gorm:"not null" json:"cantidad" binding:"required,min=1,max=3"`
 	Token               string          `gorm:"not null" json:"token"`
 	Estado              EstadoEntrega   `gorm:"not null" json:"estado" binding:"required,oneof=Pendiente Completado Cancelado"`
-	TipoEntrega         TipoEntrega     `gorm:"not null" json:"tipo_entrega" binding:"required,oneof=Instalacion Retiro Recambio"`
+	TipoEntrega         TipoEntrega     `gorm:"not null" json:"tipo_entrega" binding:"required,oneof=Instalacion Retiro Recambio Service Mixto"`
 	EntregadoPor        EntregadoPor    `gorm:"not null" json:"entregado_por" binding:"required,oneof=Repartidor Tecnico"`
 	SessionID           *string         `gorm:"index:idx_session_id,unique" json:"session_id,omitempty"`
 	TermsSessionID      *int64          `gorm:"index" json:"terms_session_id,omitempty"`

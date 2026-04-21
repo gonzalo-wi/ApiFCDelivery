@@ -8,24 +8,27 @@ import (
 )
 
 type Config struct {
-	DBHost         string
-	DBPort         string
-	DBUser         string
-	DBPassword     string
-	DBName         string
-	Port           string
-	CORSOrigins    string
-	Environment    string
-	InfobipBaseURL string
-	InfobipAPIKey  string
-	AppBaseURL     string
-	TermsTTLHours  int
-	AuthServiceURL string
-	EmailHost      string
-	EmailPort      string
-	EmailFrom      string
-	EmailPassword  string
-	EmailTo        string
+	DBHost                   string
+	DBPort                   string
+	DBUser                   string
+	DBPassword               string
+	DBName                   string
+	Port                     string
+	CORSOrigins              string
+	Environment              string
+	InfobipBaseURL           string
+	InfobipAPIKey            string
+	AppBaseURL               string
+	TermsTTLHours            int
+	AuthServiceURL           string
+	EmailHost                string
+	EmailPort                string
+	EmailFrom                string
+	EmailPassword            string
+	EmailTo                  string
+	ClientLookupBaseURL      string
+	ClientLookupAPIKey       string
+	ClientLookupDefaultEmail string
 }
 
 func LoadConfig() (*Config, error) {
@@ -33,24 +36,27 @@ func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
 	config := &Config{
-		DBHost:         os.Getenv("DB_HOST"),
-		DBPort:         os.Getenv("DB_PORT"),
-		DBUser:         os.Getenv("DB_USER"),
-		DBPassword:     os.Getenv("DB_PASSWORD"),
-		DBName:         os.Getenv("DB_NAME"),
-		Port:           os.Getenv("PORT"),
-		CORSOrigins:    os.Getenv("CORS_ORIGINS"),
-		Environment:    getEnvOrDefault("ENVIRONMENT", "development"),
-		InfobipBaseURL: getEnvOrDefault("INFOBIP_BASE_URL", "https://api2.infobip.com"),
-		InfobipAPIKey:  os.Getenv("INFOBIP_API_KEY"),
-		AppBaseURL:     getEnvOrDefault("APP_BASE_URL", "http://localhost:5173"),
-		TermsTTLHours:  getEnvAsInt("TERMS_TTL_HOURS", 48),
-		AuthServiceURL: getEnvOrDefault("AUTH_SERVICE_URL", "http://192.168.0.55:8087"),
-		EmailHost:      getEnvOrDefault("EMAIL_HOST", "smtp.gmail.com"),
-		EmailPort:      getEnvOrDefault("EMAIL_PORT", "587"),
-		EmailFrom:      os.Getenv("EMAIL_FROM"),
-		EmailPassword:  os.Getenv("EMAIL_PASSWORD"),
-		EmailTo:        os.Getenv("EMAIL_TO"),
+		DBHost:                   os.Getenv("DB_HOST"),
+		DBPort:                   os.Getenv("DB_PORT"),
+		DBUser:                   os.Getenv("DB_USER"),
+		DBPassword:               os.Getenv("DB_PASSWORD"),
+		DBName:                   os.Getenv("DB_NAME"),
+		Port:                     os.Getenv("PORT"),
+		CORSOrigins:              os.Getenv("CORS_ORIGINS"),
+		Environment:              getEnvOrDefault("ENVIRONMENT", "development"),
+		InfobipBaseURL:           getEnvOrDefault("INFOBIP_BASE_URL", "https://api2.infobip.com"),
+		InfobipAPIKey:            os.Getenv("INFOBIP_API_KEY"),
+		AppBaseURL:               getEnvOrDefault("APP_BASE_URL", "http://localhost:5173"),
+		TermsTTLHours:            getEnvAsInt("TERMS_TTL_HOURS", 48),
+		AuthServiceURL:           getEnvOrDefault("AUTH_SERVICE_URL", "http://192.168.0.55:8087"),
+		EmailHost:                getEnvOrDefault("EMAIL_HOST", "smtp.gmail.com"),
+		EmailPort:                getEnvOrDefault("EMAIL_PORT", "587"),
+		EmailFrom:                os.Getenv("EMAIL_FROM"),
+		EmailPassword:            os.Getenv("EMAIL_PASSWORD"),
+		EmailTo:                  os.Getenv("EMAIL_TO"),
+		ClientLookupBaseURL:      getEnvOrDefault("CLIENT_LOOKUP_BASE_URL", "https://servicios.el-jumillano.com.ar:8443"),
+		ClientLookupAPIKey:       os.Getenv("CLIENT_LOOKUP_API_KEY"),
+		ClientLookupDefaultEmail: getEnvOrDefault("CLIENT_LOOKUP_DEFAULT_EMAIL", "gwinazki@el-jumillano.com.ar"),
 	}
 
 	return config, nil

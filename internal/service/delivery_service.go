@@ -108,7 +108,6 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		Uint("tipos_m", req.Tipos.M).
 		Msg("CreateFromInfobip: request recibida")
 
-	// Verificar si ya existe una entrega con este session_id (idempotencia)
 	if req.SessionID != "" {
 		existingDelivery, err := s.store.FindBySessionID(ctx, req.SessionID)
 		if err != nil {
@@ -128,22 +127,16 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		}
 	}
 
-	// Validar cantidad total de dispensers
 	cantidadTotal := req.Tipos.P + req.Tipos.M
 	if err := validateDispenserQuantity(cantidadTotal); err != nil {
 		return nil, false, err
 	}
-
-	// Parsear fecha de acción
 	fechaAccion, err := parseFechaAccion(req.FechaAccion)
 	if err != nil {
 		return nil, false, err
 	}
 
-	// Crear items de dispensers
 	itemDispensers := createItemDispensers(req.Tipos.P, req.Tipos.M)
-
-	// Preparar SessionID como puntero (nil si está vacío)
 	var sessionIDPtr *string
 	if req.SessionID != "" {
 		sessionIDPtr = &req.SessionID
@@ -163,20 +156,13 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		FechaAccion:    fechaAccion,
 	}
 
-	// Generar token de 4 dígitos (thread-safe)
 	delivery.Token = s.generateToken()
-
-	// Guardar en base de datos (la concurrencia se maneja a nivel de BD)
 	if err := s.store.Create(ctx, delivery); err != nil {
 		return nil, false, fmt.Errorf("error creando entrega: %w", err)
 	}
-
-	// NO enviar email aquí, se enviará cuando se complete la entrega
-
 	return delivery, false, nil
 }
 
-// generar token de 4 digitos
 func (s *deliveryService) generateToken() string {
 	rangeSize := int64(constants.TOKEN_MAX - constants.TOKEN_MIN + 1)
 	n, err := rand.Int(rand.Reader, big.NewInt(rangeSize))
@@ -187,7 +173,6 @@ func (s *deliveryService) generateToken() string {
 	return fmt.Sprintf("%04d", token)
 }
 
-// sendDeliveryConfirmationEmail envía un email de confirmación de entrega
 func (s *deliveryService) sendDeliveryConfirmationEmail(ctx context.Context, delivery *models.Delivery) {
 	subject := fmt.Sprintf("Confirmación de Entrega - Token: %s", delivery.Token)
 

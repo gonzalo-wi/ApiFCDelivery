@@ -135,7 +135,69 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.Cell(0, 7, workOrder.Locality)
 	pdf.Ln(10)
 
-	if len(workOrder.Dispensers) > 0 {
+	if len(workOrder.Operations) > 0 {
+		// Determinar título de sección según tipos de operación
+		hasInstall, hasRetire := false, false
+		for _, op := range workOrder.Operations {
+			if op.InstalledDispenserCode != "" {
+				hasInstall = true
+			}
+			if op.RetiredDispenserCode != "" {
+				hasRetire = true
+			}
+		}
+		sectionTitle := "EQUIPOS"
+		if hasInstall && !hasRetire {
+			sectionTitle = "EQUIPOS INSTALADOS"
+		} else if hasRetire && !hasInstall {
+			sectionTitle = "EQUIPOS RETIRADOS"
+		}
+
+		pdf.SetFont("Arial", "B", 11)
+		pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+		pdf.SetTextColor(255, 255, 255)
+		pdf.CellFormat(0, 8, sectionTitle, "", 1, "L", true, 0, "")
+		pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+		pdf.Ln(2)
+		pdf.SetFillColor(colorAccent[0], colorAccent[1], colorAccent[2])
+		pdf.SetTextColor(255, 255, 255)
+		pdf.SetFont("Arial", "B", 10)
+		pdf.CellFormat(20, 8, constants.PDFTableItem, "1", 0, "C", true, 0, "")
+		pdf.CellFormat(45, 8, "Accion", "1", 0, "C", true, 0, "")
+		pdf.CellFormat(0, 8, constants.PDFTableSerialNumber, "1", 1, "C", true, 0, "")
+
+		pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
+		pdf.SetFont("Arial", "", 10)
+		fill := false
+		row := 1
+		for _, op := range workOrder.Operations {
+			if op.InstalledDispenserCode != "" {
+				if fill {
+					pdf.SetFillColor(245, 245, 245)
+				} else {
+					pdf.SetFillColor(255, 255, 255)
+				}
+				pdf.CellFormat(20, 7, fmt.Sprintf("%d", row), "1", 0, "C", fill, 0, "")
+				pdf.CellFormat(45, 7, "Instalado", "1", 0, "L", fill, 0, "")
+				pdf.CellFormat(0, 7, op.InstalledDispenserCode, "1", 1, "L", fill, 0, "")
+				row++
+				fill = !fill
+			}
+			if op.RetiredDispenserCode != "" {
+				if fill {
+					pdf.SetFillColor(245, 245, 245)
+				} else {
+					pdf.SetFillColor(255, 255, 255)
+				}
+				pdf.CellFormat(20, 7, fmt.Sprintf("%d", row), "1", 0, "C", fill, 0, "")
+				pdf.CellFormat(45, 7, "Retirado", "1", 0, "L", fill, 0, "")
+				pdf.CellFormat(0, 7, op.RetiredDispenserCode, "1", 1, "L", fill, 0, "")
+				row++
+				fill = !fill
+			}
+		}
+		pdf.Ln(5)
+	} else if len(workOrder.Dispensers) > 0 {
 		pdf.SetFont("Arial", "B", 11)
 		pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 		pdf.SetTextColor(255, 255, 255)
@@ -278,7 +340,7 @@ func NewRealWorkOrderPDFGenerator() WorkOrderPDFGenerator {
 }
 
 // GenerateWorkOrderPDF genera un PDF y lo guarda en disco (para el consumer)
-func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, dispensers []dto.DispenserMessage) (string, error) {
+func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, operations []dto.OperationMessage) (string, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 	pdf.SetMargins(15, 15, 15)
@@ -376,7 +438,7 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 	pdf.Ln(10)
 
 	// Equipment Section
-	if len(dispensers) > 0 {
+	if len(operations) > 0 {
 		pdf.SetFont("Arial", "B", 11)
 		pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 		pdf.SetTextColor(255, 255, 255)
@@ -387,20 +449,43 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 		pdf.SetTextColor(255, 255, 255)
 		pdf.SetFont("Arial", "B", 10)
 		pdf.CellFormat(20, 8, constants.PDFTableItem, "1", 0, "C", true, 0, "")
+		pdf.CellFormat(50, 8, "Tipo", "1", 0, "C", true, 0, "")
 		pdf.CellFormat(0, 8, constants.PDFTableSerialNumber, "1", 1, "C", true, 0, "")
 
 		pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
 		pdf.SetFont("Arial", "", 10)
 		fill := false
-		for i, dispenser := range dispensers {
+		row := 1
+		for _, op := range operations {
+			opLabel := map[string]string{
+				"installation": "Instalacion",
+				"retirement":   "Retiro",
+				"replacement":  "Recambio",
+			}[op.Type]
 			if fill {
 				pdf.SetFillColor(245, 245, 245)
 			} else {
 				pdf.SetFillColor(255, 255, 255)
 			}
-			pdf.CellFormat(20, 7, fmt.Sprintf("%d", i+1), "1", 0, "C", fill, 0, "")
-			pdf.CellFormat(0, 7, dispenser.NroSerie, "1", 1, "L", fill, 0, "")
-			fill = !fill
+			if op.InstalledDispenserCode != "" {
+				pdf.CellFormat(20, 7, fmt.Sprintf("%d", row), "1", 0, "C", fill, 0, "")
+				pdf.CellFormat(50, 7, opLabel+" (instala)", "1", 0, "L", fill, 0, "")
+				pdf.CellFormat(0, 7, op.InstalledDispenserCode, "1", 1, "L", fill, 0, "")
+				row++
+				fill = !fill
+			}
+			if op.RetiredDispenserCode != "" {
+				if fill {
+					pdf.SetFillColor(245, 245, 245)
+				} else {
+					pdf.SetFillColor(255, 255, 255)
+				}
+				pdf.CellFormat(20, 7, fmt.Sprintf("%d", row), "1", 0, "C", fill, 0, "")
+				pdf.CellFormat(50, 7, opLabel+" (retira)", "1", 0, "L", fill, 0, "")
+				pdf.CellFormat(0, 7, op.RetiredDispenserCode, "1", 1, "L", fill, 0, "")
+				row++
+				fill = !fill
+			}
 		}
 		pdf.Ln(5)
 	}

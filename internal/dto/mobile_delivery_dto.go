@@ -33,16 +33,27 @@ type ItemDispenserInfoDTO struct {
 // Eliminadas las validaciones individuales de dispenser
 // Ya no se escanean dispensers individuales, solo se registran cantidades por tipo
 
+// DispenserOperation - Una operación sobre un dispenser (instalación, retiro o recambio)
+type DispenserOperation struct {
+	Type                   string `json:"type" binding:"required,oneof=installation retirement replacement"`
+	InstalledDispenserCode string `json:"installed_dispenser_code,omitempty"`
+	RetiredDispenserCode   string `json:"retired_dispenser_code,omitempty"`
+}
+
 // MobileCompleteDeliveryRequest - Completar la entrega desde app móvil
+// delivery_id y token son opcionales: solo requeridos para instalaciones pre-coordinadas (Infobip)
+// Para retiros y recambios se crea un delivery nuevo en el momento
 type MobileCompleteDeliveryRequest struct {
-	DeliveryID          int      `json:"delivery_id" binding:"required"`
-	OrderNumber         string   `json:"order_number" binding:"required"`
-	Name                string   `json:"name"`
-	Email               string   `json:"email"`
-	Address             string   `json:"address"`
-	Locality            string   `json:"locality"`
-	Token               string   `json:"token" binding:"required"`
-	ValidatedDispensers []string `json:"validated_dispensers" binding:"required,min=1"`
+	DeliveryID  int                  `json:"delivery_id"`
+	OrderNumber string               `json:"order_number" binding:"required"`
+	NroCta      string               `json:"nro_cta" binding:"required"`
+	NroRto      string               `json:"nro_rto"`
+	Name        string               `json:"name"`
+	Email       string               `json:"email"`
+	Address     string               `json:"address"`
+	Locality    string               `json:"locality"`
+	Token       string               `json:"token"`
+	Operations  []DispenserOperation `json:"operations" binding:"required,min=1,dive"`
 }
 
 // ItemDispenserDelivered - Items de dispensers efectivamente entregados
@@ -57,21 +68,26 @@ type ItemDispenserCompletedDTO struct {
 	Cantidad uint   `json:"cantidad"`
 }
 
+// OperationCompletedDTO - Operación completada devuelta en la respuesta
+type OperationCompletedDTO struct {
+	Type                   string `json:"type"`
+	InstalledDispenserCode string `json:"installed_dispenser_code,omitempty"`
+	RetiredDispenserCode   string `json:"retired_dispenser_code,omitempty"`
+}
+
 // MobileCompleteDeliveryResponse - Respuesta al completar entrega desde app móvil
 type MobileCompleteDeliveryResponse struct {
-	NroCta              string                      `json:"nroCta"`
-	Name                string                      `json:"name"`
-	Email               string                      `json:"email"`
-	Address             string                      `json:"address"`
-	Locality            string                      `json:"locality"`
-	NroRto              string                      `json:"nroRto"`
-	CreatedAt           string                      `json:"createdAt"`
-	TipoAccion          string                      `json:"tipoAccion"`
-	Token               string                      `json:"token"`
-	OrderNumber         string                      `json:"order_number"`
-	ItemDispensers      []ItemDispenserCompletedDTO `json:"item_dispensers"`
-	ValidatedDispensers []string                    `json:"validated_dispensers,omitempty"`
-	WorkOrderQueued     bool                        `json:"work_order_queued"`
+	DeliveryID      int                     `json:"delivery_id"`
+	NroCta          string                  `json:"nro_cta"`
+	Name            string                  `json:"name"`
+	Email           string                  `json:"email"`
+	Address         string                  `json:"address"`
+	Locality        string                  `json:"locality"`
+	NroRto          string                  `json:"nro_rto"`
+	TipoAccion      string                  `json:"tipo_accion"`
+	OrderNumber     string                  `json:"order_number"`
+	Operations      []OperationCompletedDTO `json:"operations"`
+	WorkOrderQueued bool                    `json:"work_order_queued"`
 }
 
 // MobileDeliverySearchResponse - Respuesta simplificada para búsqueda de deliveries (mobile)

@@ -107,13 +107,13 @@ func (h *MobileDeliveryHandler) CompleteDelivery(c *gin.Context) {
 	// Auditar completar entrega
 	if h.auditService != nil {
 		metadata := map[string]interface{}{
-			"validated_dispensers": req.ValidatedDispensers,
-			"dispensers_count":     len(req.ValidatedDispensers),
-			"work_order_queued":    response.WorkOrderQueued,
+			"operations":        req.Operations,
+			"operations_count":  len(req.Operations),
+			"work_order_queued": response.WorkOrderQueued,
 		}
 		h.auditService.LogDeliveryUpdated(
 			c.Request.Context(),
-			req.DeliveryID,
+			response.DeliveryID,
 			"mobile_app",
 			req.Token,
 			nil, // before state (opcional)

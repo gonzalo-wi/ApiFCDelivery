@@ -203,7 +203,7 @@ func (c *WorkOrderConsumer) createWorkOrder(ctx context.Context, msg dto.WorkOrd
 	// 3. Generar PDF (si el servicio está disponible)
 	var pdfPath string
 	if c.pdfGenerator != nil {
-		pdfPath, err = c.pdfGenerator.GenerateWorkOrderPDF(ctx, workOrder, msg.Dispensers)
+		pdfPath, err = c.pdfGenerator.GenerateWorkOrderPDF(ctx, workOrder, msg.Operations)
 		if err != nil {
 			log.Error().Err(err).Msg("Error generando PDF, continuando sin él")
 			// No fallar si el PDF falla
