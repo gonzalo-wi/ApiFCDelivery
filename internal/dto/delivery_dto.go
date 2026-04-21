@@ -17,7 +17,7 @@ type DeliveryResponse struct {
 	Estado         models.EstadoEntrega    `json:"estado"`
 	TipoEntrega    models.TipoEntrega      `json:"tipo_entrega"`
 	EntregadoPor   models.EntregadoPor     `json:"entregado_por"`
-	SessionID      *string                 `json:"session_id,omitempty"`
+	ConversationID *string                 `json:"conversation_id,omitempty"`
 	FechaAccion    string                  `json:"fecha_accion"`
 }
 
@@ -40,7 +40,7 @@ func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
 		Estado:         delivery.Estado,
 		TipoEntrega:    delivery.TipoEntrega,
 		EntregadoPor:   delivery.EntregadoPor,
-		SessionID:      delivery.SessionID,
+		ConversationID: delivery.ConversationID,
 		FechaAccion:    delivery.FechaAccion.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }

@@ -97,7 +97,7 @@ func (s *deliveryService) FindPendingByNroCta(ctx context.Context, nroCta string
 func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, bool, error) {
 	// Loguear siempre la request entrante para diagnóstico
 	log.Info().
-		Str("session_id", req.SessionID).
+		Str("conversation_id", req.ConversationID).
 		Str("nro_cta", req.NroCta).
 		Str("nro_rto", req.NroRto).
 		Str("email", req.Email).
@@ -108,21 +108,21 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		Uint("tipos_m", req.Tipos.M).
 		Msg("CreateFromInfobip: request recibida")
 
-	if req.SessionID != "" {
-		existingDelivery, err := s.store.FindBySessionID(ctx, req.SessionID)
+	if req.ConversationID != "" {
+		existingDelivery, err := s.store.FindByConversationID(ctx, req.ConversationID)
 		if err != nil {
-			return nil, false, fmt.Errorf("error verificando session_id existente: %w", err)
+			return nil, false, fmt.Errorf("error verificando conversation_id existente: %w", err)
 		}
 		if existingDelivery != nil {
-			// Ya existe una entrega con este session_id, devolverla (idempotente)
+			// Ya existe una entrega con este conversation_id, devolverla (idempotente)
 			log.Warn().
-				Str("session_id", req.SessionID).
+				Str("conversation_id", req.ConversationID).
 				Int("existing_delivery_id", existingDelivery.ID).
 				Str("existing_token", existingDelivery.Token).
 				Str("existing_nro_cta", existingDelivery.NroCta).
 				Str("request_nro_cta", req.NroCta).
 				Str("request_nro_rto", req.NroRto).
-				Msg("CreateFromInfobip: session_id duplicado, retornando entrega existente (idempotente)")
+				Msg("CreateFromInfobip: conversation_id duplicado, retornando entrega existente (idempotente)")
 			return existingDelivery, true, nil
 		}
 	}
@@ -137,9 +137,9 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 	}
 
 	itemDispensers := createItemDispensers(req.Tipos.P, req.Tipos.M)
-	var sessionIDPtr *string
-	if req.SessionID != "" {
-		sessionIDPtr = &req.SessionID
+	var conversationIDPtr *string
+	if req.ConversationID != "" {
+		conversationIDPtr = &req.ConversationID
 	}
 
 	// Crear la entrega
@@ -152,7 +152,7 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		Estado:         models.Pendiente,
 		TipoEntrega:    req.TipoEntrega,
 		EntregadoPor:   req.EntregadoPor,
-		SessionID:      sessionIDPtr,
+		ConversationID: conversationIDPtr,
 		FechaAccion:    fechaAccion,
 	}
 

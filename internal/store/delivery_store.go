@@ -13,7 +13,7 @@ import (
 type DeliveryStore interface {
 	FindAll(ctx context.Context) ([]models.Delivery, error)
 	FindByID(ctx context.Context, id int) (*models.Delivery, error)
-	FindBySessionID(ctx context.Context, sessionID string) (*models.Delivery, error)
+	FindByConversationID(ctx context.Context, conversationID string) (*models.Delivery, error)
 	FindByTokenAndFilters(ctx context.Context, token, nroCta, fechaAccion string, estado models.EstadoEntrega) (*models.Delivery, error)
 	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
 	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
@@ -49,13 +49,13 @@ func (s *deliveryStore) FindByID(ctx context.Context, id int) (*models.Delivery,
 	return &delivery, nil
 }
 
-func (s *deliveryStore) FindBySessionID(ctx context.Context, sessionID string) (*models.Delivery, error) {
+func (s *deliveryStore) FindByConversationID(ctx context.Context, conversationID string) (*models.Delivery, error) {
 	var delivery models.Delivery
-	if err := s.db.WithContext(ctx).Preload("ItemDispensers").Where("session_id = ?", sessionID).First(&delivery).Error; err != nil {
+	if err := s.db.WithContext(ctx).Preload("ItemDispensers").Where("conversation_id = ?", conversationID).First(&delivery).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("error buscando entrega por session_id: %w", err)
+		return nil, fmt.Errorf("error buscando entrega por conversation_id: %w", err)
 	}
 	return &delivery, nil
 }

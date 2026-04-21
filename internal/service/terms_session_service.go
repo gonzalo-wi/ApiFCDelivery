@@ -15,7 +15,7 @@ import (
 )
 
 type TermsSessionService interface {
-	CreateSession(ctx context.Context, sessionID, appBaseURL string, ttlHours int) (*dto.CreateTermsSessionResponse, error)
+	CreateSession(ctx context.Context, sessionID, conversationID, appBaseURL string, ttlHours int) (*dto.CreateTermsSessionResponse, error)
 	GetSessionStatus(ctx context.Context, token string) (*dto.TermsSessionStatusResponse, error)
 	GetSessionBySessionID(ctx context.Context, sessionID string) (*dto.TermsSessionStatusResponse, error)
 	AcceptTerms(ctx context.Context, token, ip, userAgent string) (*dto.TermsActionResponse, error)
@@ -41,14 +41,25 @@ func NewTermsSessionService(
 	}
 }
 
-// CreateSession crea una nueva sesión de términos y genera un token único
-func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, appBaseURL string, ttlHours int) (*dto.CreateTermsSessionResponse, error) {
-	existing, err := s.store.FindBySessionID(ctx, sessionID)
+// CreateSession crea una nueva sesión de términos y genera un token único.
+// sessionID: identificador de sesión de Infobip (se usa para el webhook de respuesta).
+// conversationID: identificador único de conversación (clave de idempotencia).
+//
+//	Si está vacío (flujo de portal/contact center), se usa sessionID como fallback.
+func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conversationID, appBaseURL string, ttlHours int) (*dto.CreateTermsSessionResponse, error) {
+	// Determinar la clave de idempotencia
+	idempotencyKey := conversationID
+	if idempotencyKey == "" {
+		idempotencyKey = sessionID
+	}
+
+	existing, err := s.store.FindByConversationID(ctx, idempotencyKey)
 	if err != nil {
 		return nil, fmt.Errorf(constants.ErrVerifyingExistingSession, err)
 	}
 	if existing != nil && existing.Status == models.StatusPending && time.Now().Before(existing.ExpiresAt) {
 		log.Info().
+			Str("conversation_id", idempotencyKey).
 			Str("session_id", sessionID).
 			Str("token", existing.Token).
 			Msg(constants.LogSessionFoundReusing)
@@ -65,17 +76,19 @@ func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, appB
 	now := time.Now()
 	expiresAt := now.Add(time.Duration(ttlHours) * time.Hour)
 	session := &models.TermsSession{
-		Token:        token,
-		SessionID:    sessionID,
-		Status:       models.StatusPending,
-		CreatedAt:    now,
-		ExpiresAt:    expiresAt,
-		NotifyStatus: models.NotifyPending,
+		Token:          token,
+		SessionID:      sessionID,
+		ConversationID: idempotencyKey,
+		Status:         models.StatusPending,
+		CreatedAt:      now,
+		ExpiresAt:      expiresAt,
+		NotifyStatus:   models.NotifyPending,
 	}
 	if err := s.store.Create(ctx, session); err != nil {
 		return nil, fmt.Errorf(constants.ErrCreatingSession, err)
 	}
 	log.Info().
+		Str("conversation_id", idempotencyKey).
 		Str("session_id", sessionID).
 		Str("token", token).
 		Time("expires_at", expiresAt).

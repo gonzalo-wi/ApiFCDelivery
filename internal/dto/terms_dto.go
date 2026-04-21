@@ -6,7 +6,8 @@ import (
 )
 
 type InfobipSessionRequest struct {
-	SessionID string `json:"sessionId" binding:"required"`
+	SessionID      string `json:"sessionId" binding:"required"`
+	ConversationID string `json:"conversationId" binding:"required"`
 }
 
 type CreateTermsSessionResponse struct {

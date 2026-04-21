@@ -51,7 +51,7 @@ func (s *deliveryWithTermsService) InitiateDelivery(
 
 	sessionID := req.NroRto
 
-	termsResponse, err := s.termsSessionService.CreateSession(ctx, sessionID, appBaseURL, ttlHours)
+	termsResponse, err := s.termsSessionService.CreateSession(ctx, sessionID, "", appBaseURL, ttlHours)
 	if err != nil {
 		return nil, fmt.Errorf("error creando sesión de términos: %w", err)
 	}

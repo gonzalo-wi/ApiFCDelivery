@@ -14,6 +14,7 @@ type TermsSessionStore interface {
 	GetByID(ctx context.Context, id int64) (*models.TermsSession, error)
 	FindByToken(ctx context.Context, token string) (*models.TermsSession, error)
 	FindBySessionID(ctx context.Context, sessionID string) (*models.TermsSession, error)
+	FindByConversationID(ctx context.Context, conversationID string) (*models.TermsSession, error)
 	Update(ctx context.Context, session *models.TermsSession) error
 	UpdateStatus(ctx context.Context, token string, status models.TermsSessionStatus) error
 	UpdateNotifyStatus(ctx context.Context, id int64, notifyStatus models.NotifyStatus, attempts int, lastError string) error
@@ -64,6 +65,17 @@ func (s *termsSessionStore) FindBySessionID(ctx context.Context, sessionID strin
 			return nil, nil // No error si no existe
 		}
 		return nil, fmt.Errorf("error buscando sesión por sessionID: %w", err)
+	}
+	return &session, nil
+}
+
+func (s *termsSessionStore) FindByConversationID(ctx context.Context, conversationID string) (*models.TermsSession, error) {
+	var session models.TermsSession
+	if err := s.db.WithContext(ctx).Where("conversation_id = ?", conversationID).First(&session).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil // No error si no existe
+		}
+		return nil, fmt.Errorf("error buscando sesión por conversationID: %w", err)
 	}
 	return &session, nil
 }

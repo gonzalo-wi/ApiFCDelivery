@@ -23,6 +23,7 @@ type TermsSession struct {
 	ID             int64              `gorm:"primaryKey" json:"id"`
 	Token          string             `gorm:"uniqueIndex;not null" json:"token"`
 	SessionID      string             `gorm:"not null;index" json:"session_id"`
+	ConversationID string             `gorm:"uniqueIndex" json:"conversation_id"`
 	Status         TermsSessionStatus `gorm:"not null;index" json:"status"`
 	DeliveryData   string             `gorm:"type:text" json:"delivery_data,omitempty"`
 	CreatedAt      time.Time          `gorm:"autoCreateTime" json:"created_at"`
