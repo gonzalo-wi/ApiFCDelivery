@@ -33,9 +33,9 @@ type ItemDispenserInfoDTO struct {
 // Eliminadas las validaciones individuales de dispenser
 // Ya no se escanean dispensers individuales, solo se registran cantidades por tipo
 
-// DispenserOperation - Una operación sobre un dispenser (instalación, retiro o recambio)
+// DispenserOperation - Una operación sobre un dispenser (instalación, retiro, recambio o servicio técnico)
 type DispenserOperation struct {
-	Type                   string `json:"type" binding:"required,oneof=installation retirement replacement"`
+	Type                   string `json:"type" binding:"required,oneof=installation retirement replacement service"`
 	InstalledDispenserCode string `json:"installed_dispenser_code,omitempty"`
 	RetiredDispenserCode   string `json:"retired_dispenser_code,omitempty"`
 }

@@ -4,6 +4,7 @@ import (
 	"GoFrioCalor/internal/constants"
 	"GoFrioCalor/internal/models"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -28,8 +29,15 @@ func NewDatabase(dsn string) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	if err := db.AutoMigrate(&models.Delivery{}, &models.ItemDispenser{}, &models.WorkOrder{}, &models.TermsSession{}); err != nil {
-		log.Println(constants.MsgInternalServerError, err)
-		return nil, err
+		// SQLSTATE 42701: column already exists — ocurre cuando la migración SQL
+		// ya renombró/agregó la columna antes de que AutoMigrate la detecte.
+		// Es seguro ignorar este error; la segunda ejecución siempre funciona.
+		if strings.Contains(err.Error(), "42701") || strings.Contains(err.Error(), "already exists") {
+			log.Println("Warning: AutoMigrate 'already exists' ignorado (columna pre-existente):", err)
+		} else {
+			log.Println(constants.MsgInternalServerError, err)
+			return nil, err
+		}
 	}
 
 	log.Println(constants.MsgDatabaseConnected)

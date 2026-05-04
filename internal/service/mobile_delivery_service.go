@@ -277,6 +277,9 @@ func deriveTipoEntrega(ops []dto.DispenserOperation) models.TipoEntrega {
 	if types["retirement"] {
 		return models.Retiro
 	}
+	if types["service"] {
+		return models.Service
+	}
 	return models.Recambio
 }
 
