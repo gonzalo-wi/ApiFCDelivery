@@ -175,11 +175,14 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 		delivery.Locality = req.Locality
 	}
 
-	// Guardar solo los dispensers instalados en ValidatedDispensers
+	// Guardar solo los dispensers instalados/serviciados en ValidatedDispensers
 	installed := make([]string, 0, len(req.Operations))
 	for _, op := range req.Operations {
 		if op.InstalledDispenserCode != "" {
 			installed = append(installed, op.InstalledDispenserCode)
+		}
+		if op.ServiceDispenserCode != "" {
+			installed = append(installed, op.ServiceDispenserCode)
 		}
 	}
 	delivery.ValidatedDispensers = models.StringArray(installed)
@@ -207,6 +210,7 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 			Type:                   op.Type,
 			InstalledDispenserCode: op.InstalledDispenserCode,
 			RetiredDispenserCode:   op.RetiredDispenserCode,
+			ServiceDispenserCode:   op.ServiceDispenserCode,
 		})
 	}
 
@@ -244,6 +248,7 @@ func (s *mobileDeliveryService) CompleteDelivery(ctx context.Context, req dto.Mo
 			Type:                   op.Type,
 			InstalledDispenserCode: op.InstalledDispenserCode,
 			RetiredDispenserCode:   op.RetiredDispenserCode,
+			ServiceDispenserCode:   op.ServiceDispenserCode,
 		})
 	}
 

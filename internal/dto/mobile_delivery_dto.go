@@ -38,6 +38,7 @@ type DispenserOperation struct {
 	Type                   string `json:"type" binding:"required,oneof=installation retirement replacement service"`
 	InstalledDispenserCode string `json:"installed_dispenser_code,omitempty"`
 	RetiredDispenserCode   string `json:"retired_dispenser_code,omitempty"`
+	ServiceDispenserCode   string `json:"service_dispenser_code,omitempty"`
 }
 
 // MobileCompleteDeliveryRequest - Completar la entrega desde app móvil
@@ -73,6 +74,7 @@ type OperationCompletedDTO struct {
 	Type                   string `json:"type"`
 	InstalledDispenserCode string `json:"installed_dispenser_code,omitempty"`
 	RetiredDispenserCode   string `json:"retired_dispenser_code,omitempty"`
+	ServiceDispenserCode   string `json:"service_dispenser_code,omitempty"`
 }
 
 // MobileCompleteDeliveryResponse - Respuesta al completar entrega desde app móvil

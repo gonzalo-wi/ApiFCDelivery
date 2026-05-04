@@ -5,6 +5,7 @@ type OperationMessage struct {
 	Type                   string `json:"type"`
 	InstalledDispenserCode string `json:"installed_dispenser_code,omitempty"`
 	RetiredDispenserCode   string `json:"retired_dispenser_code,omitempty"`
+	ServiceDispenserCode   string `json:"service_dispenser_code,omitempty"`
 }
 
 // WorkOrderMessageDTO - Mensaje que se publica en RabbitMQ para crear orden de trabajo
