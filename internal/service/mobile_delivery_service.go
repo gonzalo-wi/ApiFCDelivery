@@ -329,6 +329,7 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 
 	// 2. Construir WorkOrderRequest para generar el PDF
 	workOrderReq := &dto.WorkOrderRequest{
+		DeliveryID:  delivery.ID,
 		NroCta:      delivery.NroCta,
 		Name:        delivery.Name,
 		Address:     delivery.Address,
@@ -351,7 +352,7 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 
 	localLog.Info().Str("order_number", orderNumber).Msg("PDF generated successfully")
 
-	// 3. Crear HTML del email de instalación completada
+	// 3. Crear HTML del email de completado (adaptado al tipo de entrega)
 	installedCodes := make([]string, 0)
 	for _, op := range operations {
 		if op.InstalledDispenserCode != "" {
@@ -359,12 +360,13 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 		}
 	}
 	emailHTML := s.buildCompletionEmailHTML(delivery, installedCodes, orderNumber)
+	emailSubject := emailTextsForTipoEntrega(delivery.TipoEntrega).subject
 
 	// 4. Enviar email con PDF adjunto
 	err = s.emailService.SendHTMLEmailWithPDFBytes(
 		ctx,
 		emailTo,
-		"Instalación Completada - El Jumillano",
+		emailSubject,
 		emailHTML,
 		pdfBytes,
 		fmt.Sprintf("orden_trabajo_%s.pdf", orderNumber),
@@ -378,8 +380,78 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 	localLog.Info().Msg("Completion email sent successfully with PDF attachment")
 }
 
-// buildCompletionEmailHTML construye el HTML del email de instalación completada
+// completionEmailTexts contiene los textos dinámicos del email según el tipo de entrega.
+type completionEmailTexts struct {
+	subject        string
+	title          string
+	subtitle       string
+	message        string // puede contener %s para la localidad
+	cardTitle      string
+	dispenserTitle string
+	pdfNotice      string
+}
+
+// emailTextsForTipoEntrega devuelve los textos del email según el tipo de entrega.
+func emailTextsForTipoEntrega(tipo models.TipoEntrega) completionEmailTexts {
+	switch tipo {
+	case models.Retiro:
+		return completionEmailTexts{
+			subject:        "Retiro Completado - El Jumillano",
+			title:          "Retiro Completado",
+			subtitle:       "El retiro ha sido realizado exitosamente",
+			message:        "Nos complace informarle que el retiro de su/s dispenser/s de agua ha sido realizado exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha completado el trabajo correspondiente.",
+			cardTitle:      "Detalles del Retiro",
+			dispenserTitle: "Equipos Retirados",
+			pdfNotice:      "Encontrará el comprobante del retiro en formato PDF con todos los detalles técnicos y números de serie de los equipos retirados.",
+		}
+	case models.Recambio:
+		return completionEmailTexts{
+			subject:        "Recambio Completado - El Jumillano",
+			title:          "Recambio Completado",
+			subtitle:       "El recambio ha sido realizado exitosamente",
+			message:        "Nos complace informarle que el recambio de su/s dispenser/s de agua ha sido completado exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha verificado el correcto funcionamiento de los nuevos equipos.",
+			cardTitle:      "Detalles del Recambio",
+			dispenserTitle: "Equipos Instalados",
+			pdfNotice:      "Encontrará el comprobante del recambio en formato PDF con todos los detalles técnicos y números de serie de los equipos.",
+		}
+	case models.Service:
+		return completionEmailTexts{
+			subject:        "Servicio Técnico Completado - El Jumillano",
+			title:          "Servicio Técnico Completado",
+			subtitle:       "El servicio técnico ha sido completado",
+			message:        "Nos complace informarle que el servicio técnico de su/s dispenser/s de agua ha sido completado exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha verificado el correcto funcionamiento de los equipos.",
+			cardTitle:      "Detalles del Servicio Técnico",
+			dispenserTitle: "Equipos Atendidos",
+			pdfNotice:      "Encontrará el comprobante del servicio técnico en formato PDF con todos los detalles del trabajo realizado.",
+		}
+	case models.Mixto:
+		return completionEmailTexts{
+			subject:        "Servicio Completado - El Jumillano",
+			title:          "Servicio Completado",
+			subtitle:       "El servicio ha sido completado exitosamente",
+			message:        "Nos complace informarle que el servicio en su/s dispenser/s de agua ha sido completado exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha realizado todas las tareas correspondientes.",
+			cardTitle:      "Detalles del Servicio",
+			dispenserTitle: "Equipos Involucrados",
+			pdfNotice:      "Encontrará el comprobante del servicio en formato PDF con todos los detalles técnicos correspondientes.",
+		}
+	default: // Instalacion
+		return completionEmailTexts{
+			subject:        "Instalación Completada - El Jumillano",
+			title:          "Instalación Completada",
+			subtitle:       "Su servicio ya está en funcionamiento",
+			message:        "Nos complace informarle que la instalación de su/s dispenser/s de agua ha sido completada exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha verificado el correcto funcionamiento de todos los equipos.",
+			cardTitle:      "Detalles de su Instalación",
+			dispenserTitle: "Equipos Instalados",
+			pdfNotice:      "Encontrará el comprobante de instalación en formato PDF con todos los detalles técnicos y números de serie de los equipos instalados.",
+		}
+	}
+}
+
+// buildCompletionEmailHTML construye el HTML del email de completado según el tipo de entrega.
 func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delivery, dispensers []string, orderNumber string) string {
+	texts := emailTextsForTipoEntrega(delivery.TipoEntrega)
+	message := fmt.Sprintf(texts.message, delivery.Locality)
+
 	dispensersRows := ""
 	for i, code := range dispensers {
 		bgColor := "#ffffff"
@@ -399,7 +471,7 @@ func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delive
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instalación Completada</title>
+    <title>%s</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -630,8 +702,8 @@ func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delive
         <div class="container">
             <div class="header">
                 <div class="success-icon">✓</div>
-                <h1>Instalación Completada</h1>
-                <p>Su servicio ya está en funcionamiento</p>
+                <h1>%s</h1>
+                <p>%s</p>
             </div>
             
             <div class="content">
@@ -640,13 +712,11 @@ func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delive
                 </div>
                 
                 <div class="message">
-                    Nos complace informarle que la instalación de sus dispensers de agua 
-                    ha sido completada exitosamente en <strong>%s</strong>. 
-                    Nuestro equipo técnico ha verificado el correcto funcionamiento de todos los equipos.
+                    %s
                 </div>
                 
                 <div class="info-card">
-                    <h3>Detalles de su Instalación</h3>
+                    <h3>%s</h3>
                     <div class="info-row">
                         <span class="info-label">Orden de Trabajo:</span>
                         <span class="info-value"><strong>%s</strong></span>
@@ -666,7 +736,7 @@ func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delive
                 </div>
 
                 <div class="dispensers-section">
-                    <h3>Equipos Instalados</h3>
+                    <h3>%s</h3>
                     <table class="dispensers-table">
                         <thead>
                             <tr>
@@ -682,8 +752,7 @@ func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delive
 
                 <div class="pdf-notice">
                     <p>
-                        <strong>Documento Adjunto:</strong> Encontrará el comprobante de instalación en formato PDF 
-                        con todos los detalles técnicos y números de serie de los equipos instalados.
+                        <strong>Documento Adjunto:</strong> %s
                     </p>
                 </div>
 
@@ -708,12 +777,18 @@ func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delive
 </body>
 </html>
 	`,
+		texts.title,
+		texts.title,
+		texts.subtitle,
 		delivery.Name,
-		delivery.Locality,
+		message,
+		texts.cardTitle,
 		orderNumber,
 		delivery.Address,
 		delivery.FechaAccion.Format("02/01/2006"),
 		len(dispensers),
+		texts.dispenserTitle,
 		dispensersRows,
+		texts.pdfNotice,
 	)
 }

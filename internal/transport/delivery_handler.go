@@ -28,9 +28,36 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 	ctx := c.Request.Context()
 	nroCta := c.Query("nro_cta")
 	fechaStr := c.Query("fecha_accion")
+	estadoStr := c.Query("estado")
+
+	// Paginación
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	var estado *models.EstadoEntrega
+	if estadoStr != "" {
+		switch models.EstadoEntrega(estadoStr) {
+		case models.Pendiente, models.Completado, models.Cancelado:
+			e := models.EstadoEntrega(estadoStr)
+			estado = &e
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Estado inválido. Valores aceptados: Pendiente, Completado, Cancelado"})
+			return
+		}
+	}
+
 	var deliveries []models.Delivery
+	var total int64
 	var err error
-	if nroCta != "" || fechaStr != "" {
+
+	if nroCta != "" || fechaStr != "" || estado != nil {
 		var fechaAccion *time.Time
 		if fechaStr != "" {
 			parsed, parseErr := time.Parse("2006-01-02", fechaStr)
@@ -40,9 +67,19 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 			}
 			fechaAccion = &parsed
 		}
-		deliveries, err = h.service.FindByFilters(ctx, nroCta, fechaAccion)
+		total, err = h.service.CountByFilters(ctx, nroCta, fechaAccion, estado)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		deliveries, err = h.service.FindByFilters(ctx, nroCta, fechaAccion, estado, pageSize, offset)
 	} else {
-		deliveries, err = h.service.FindAll(ctx)
+		total, err = h.service.CountAll(ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		deliveries, err = h.service.FindAll(ctx, pageSize, offset)
 	}
 
 	if err != nil {
@@ -50,8 +87,20 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 		return
 	}
 
-	response := dto.ToDeliveryResponseList(deliveries)
-	c.JSON(http.StatusOK, response)
+	totalPages := int(total) / pageSize
+	if int(total)%pageSize != 0 {
+		totalPages++
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": dto.ToDeliveryResponseList(deliveries),
+		"pagination": gin.H{
+			"page":        page,
+			"page_size":   pageSize,
+			"total":       total,
+			"total_pages": totalPages,
+		},
+	})
 }
 
 func (h *DeliveryHandler) GetDeliveryByID(c *gin.Context) {
@@ -229,7 +278,7 @@ func (h *DeliveryHandler) GetDeliveriesByNroCta(c *gin.Context) {
 		fechaAccion = &parsed
 	}
 
-	deliveries, err := h.service.FindByFilters(ctx, nroCta, fechaAccion)
+	deliveries, err := h.service.FindByFilters(ctx, nroCta, fechaAccion, nil, -1, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

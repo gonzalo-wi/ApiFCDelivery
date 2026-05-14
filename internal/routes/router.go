@@ -57,8 +57,9 @@ func SetupRouter(deliveryHandler *transport.DeliveryHandler,
 	router.GET("/dispenser-operations/api/v1/deliveries/contact-center/token", deliveryHandler.GetTokenByFechaAndCta)
 	router.POST("/dispenser-operations/api/v1/deliveries/contact-center", deliveryHandler.CreateDeliveryFromContactCenter)
 
-	// Rutas públicas de términos (para que el cliente pueda aceptar/rechazar)
+	// Rutas públicas de términos y deliveries (GET sin autenticación)
 	publicAPI := router.Group("/dispenser-operations/api/v1")
+	RegisterPublicDeliveryGetRoutes(publicAPI, deliveryHandler)
 	RegisterPublicTermsRoutes(publicAPI, termsSessionHandler)
 
 	// ===== RUTAS PROTEGIDAS (CON AUTENTICACIÓN) =====

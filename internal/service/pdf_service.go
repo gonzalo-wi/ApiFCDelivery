@@ -27,24 +27,38 @@ func NewPDFService(workOrderStore store.WorkOrderStore) PDFService {
 
 func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.WorkOrderRequest) ([]byte, string, error) {
 	orderNumber := workOrder.OrderNumber
-	if orderNumber == "" {
-		var err error
-		orderNumber, err = s.workOrderStore.GetNextOrderNumber(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to get next order number: %w", err)
+
+	// Verificar si ya existe un work_order para este delivery (evitar duplicado en reintentos)
+	alreadyExists := false
+	if workOrder.DeliveryID > 0 {
+		existing, err := s.workOrderStore.FindByDeliveryID(ctx, workOrder.DeliveryID)
+		if err == nil && existing != nil {
+			orderNumber = existing.OrderNumber
+			alreadyExists = true
 		}
 	}
-	woModel := &models.WorkOrder{
-		OrderNumber: orderNumber,
-		NroCta:      workOrder.NroCta,
-		NroRto:      workOrder.NroRto,
-		Name:        workOrder.Name,
-		Address:     workOrder.Address,
-		Localidad:   workOrder.Locality,
-		TipoAccion:  workOrder.TipoAccion,
-	}
-	if err := s.workOrderStore.Create(ctx, woModel); err != nil {
-		return nil, "", fmt.Errorf("failed to create work order: %w", err)
+
+	if !alreadyExists {
+		if orderNumber == "" {
+			var err error
+			orderNumber, err = s.workOrderStore.GetNextOrderNumber(ctx)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to get next order number: %w", err)
+			}
+		}
+		woModel := &models.WorkOrder{
+			OrderNumber: orderNumber,
+			DeliveryID:  workOrder.DeliveryID,
+			NroCta:      workOrder.NroCta,
+			NroRto:      workOrder.NroRto,
+			Name:        workOrder.Name,
+			Address:     workOrder.Address,
+			Localidad:   workOrder.Locality,
+			TipoAccion:  workOrder.TipoAccion,
+		}
+		if err := s.workOrderStore.Create(ctx, woModel); err != nil {
+			return nil, "", fmt.Errorf("failed to create work order: %w", err)
+		}
 	}
 
 	pdf := gofpdf.New("P", "mm", "A4", "")

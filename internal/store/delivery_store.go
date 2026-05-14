@@ -11,11 +11,13 @@ import (
 )
 
 type DeliveryStore interface {
-	FindAll(ctx context.Context) ([]models.Delivery, error)
+	FindAll(ctx context.Context, limit, offset int) ([]models.Delivery, error)
+	CountAll(ctx context.Context) (int64, error)
 	FindByID(ctx context.Context, id int) (*models.Delivery, error)
 	FindByConversationID(ctx context.Context, conversationID string) (*models.Delivery, error)
 	FindByTokenAndFilters(ctx context.Context, token, nroCta, fechaAccion string, estado models.EstadoEntrega) (*models.Delivery, error)
-	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
+	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega, limit, offset int) ([]models.Delivery, error)
+	CountByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega) (int64, error)
 	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
 	FindByFechaAccion(ctx context.Context, fecha string) ([]models.Delivery, error)
 	FindByFechaAndNroCta(ctx context.Context, fechaAccion, nroCta string) (*models.Delivery, error)
@@ -34,12 +36,21 @@ func NewDeliveryStore(db *gorm.DB) DeliveryStore {
 	return &deliveryStore{db: db}
 }
 
-func (s *deliveryStore) FindAll(ctx context.Context) ([]models.Delivery, error) {
+func (s *deliveryStore) FindAll(ctx context.Context, limit, offset int) ([]models.Delivery, error) {
 	var deliveries []models.Delivery
-	if err := s.db.WithContext(ctx).Preload("ItemDispensers").Find(&deliveries).Error; err != nil {
+	query := s.db.WithContext(ctx).Preload("ItemDispensers").Order("id DESC").Offset(offset).Limit(limit)
+	if err := query.Find(&deliveries).Error; err != nil {
 		return nil, fmt.Errorf(constants.ErrFindAllDeliveries, err)
 	}
 	return deliveries, nil
+}
+
+func (s *deliveryStore) CountAll(ctx context.Context) (int64, error) {
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&models.Delivery{}).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("error contando deliveries: %w", err)
+	}
+	return count, nil
 }
 func (s *deliveryStore) FindByID(ctx context.Context, id int) (*models.Delivery, error) {
 	var delivery models.Delivery
@@ -88,9 +99,8 @@ func (s *deliveryStore) FindByTokenAndFilters(ctx context.Context, token, nroCta
 	return &delivery, nil
 }
 
-func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error) {
-	var deliveries []models.Delivery
-	query := s.db.WithContext(ctx).Preload("ItemDispensers")
+func (s *deliveryStore) buildFiltersQuery(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega) *gorm.DB {
+	query := s.db.WithContext(ctx).Model(&models.Delivery{})
 	if nroCta != "" {
 		query = query.Where("nro_cta = ?", nroCta)
 	}
@@ -99,11 +109,30 @@ func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaA
 		endOfDay := startOfDay.Add(24 * time.Hour)
 		query = query.Where("fecha_accion >= ? AND fecha_accion < ?", startOfDay, endOfDay)
 	}
+	if estado != nil {
+		query = query.Where("estado = ?", *estado)
+	}
+	return query
+}
 
+func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega, limit, offset int) ([]models.Delivery, error) {
+	var deliveries []models.Delivery
+	query := s.buildFiltersQuery(ctx, nroCta, fechaAccion, estado).
+		Preload("ItemDispensers").
+		Order("id DESC").
+		Offset(offset).Limit(limit)
 	if err := query.Find(&deliveries).Error; err != nil {
 		return nil, fmt.Errorf(constants.ErrFindDeliveriesFilters, err)
 	}
 	return deliveries, nil
+}
+
+func (s *deliveryStore) CountByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega) (int64, error) {
+	var count int64
+	if err := s.buildFiltersQuery(ctx, nroCta, fechaAccion, estado).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("error contando deliveries con filtros: %w", err)
+	}
+	return count, nil
 }
 func (s *deliveryStore) FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error) {
 	var deliveries []models.Delivery

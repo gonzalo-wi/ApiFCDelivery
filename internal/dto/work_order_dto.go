@@ -1,6 +1,7 @@
 package dto
 
 type WorkOrderRequest struct {
+	DeliveryID  int                         `json:"delivery_id"`
 	NroCta      string                      `json:"nroCta" binding:"required,min=1,max=50"`
 	Name        string                      `json:"name" binding:"required,min=3,max=200"`
 	Address     string                      `json:"address" binding:"required,min=5,max=300"`

@@ -9,15 +9,21 @@ import (
 func RegisterDeliveryRoutes(router *gin.RouterGroup, handler *transport.DeliveryHandler) {
 	deliveries := router.Group("/deliveries")
 	{
+		deliveries.POST("", handler.CreateDelivery)
+		deliveries.POST("/infobip", handler.CreateDeliveryFromInfobip)
+		deliveries.DELETE("/:id", handler.DeleteDelivery)
+	}
+}
+
+func RegisterPublicDeliveryGetRoutes(router *gin.RouterGroup, handler *transport.DeliveryHandler) {
+	deliveries := router.Group("/deliveries")
+	{
 		deliveries.GET("", handler.GetAllDeliveries)
 		deliveries.GET("/by-rto", handler.GetDeliveriesByRto)
 		deliveries.GET("/by-cta", handler.GetDeliveriesByNroCta)
 		deliveries.GET("/infobip/pending", handler.GetPendingByNroCta)
 		deliveries.GET("/:id", handler.GetDeliveryByID)
-		deliveries.POST("", handler.CreateDelivery)
-		deliveries.POST("/infobip", handler.CreateDeliveryFromInfobip)
 		deliveries.PUT("/:id", handler.UpdateDelivery)
-		deliveries.DELETE("/:id", handler.DeleteDelivery)
 	}
 }
 

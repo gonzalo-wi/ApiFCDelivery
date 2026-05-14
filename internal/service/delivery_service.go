@@ -15,9 +15,11 @@ import (
 )
 
 type DeliveryService interface {
-	FindAll(ctx context.Context) ([]models.Delivery, error)
+	FindAll(ctx context.Context, limit, offset int) ([]models.Delivery, error)
+	CountAll(ctx context.Context) (int64, error)
 	FindByID(ctx context.Context, id int) (*models.Delivery, error)
-	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error)
+	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega, limit, offset int) ([]models.Delivery, error)
+	CountByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega) (int64, error)
 	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
 	FindByFechaAccion(ctx context.Context, fecha string) ([]models.Delivery, error)
 	FindByFechaAndNroCta(ctx context.Context, fechaAccion, nroCta string) (*models.Delivery, error)
@@ -46,16 +48,24 @@ func NewDeliveryServiceWithEmail(store store.DeliveryStore, emailService EmailSe
 	}
 }
 
-func (s *deliveryService) FindAll(ctx context.Context) ([]models.Delivery, error) {
-	return s.store.FindAll(ctx)
+func (s *deliveryService) FindAll(ctx context.Context, limit, offset int) ([]models.Delivery, error) {
+	return s.store.FindAll(ctx, limit, offset)
+}
+
+func (s *deliveryService) CountAll(ctx context.Context) (int64, error) {
+	return s.store.CountAll(ctx)
 }
 
 func (s *deliveryService) FindByID(ctx context.Context, id int) (*models.Delivery, error) {
 	return s.store.FindByID(ctx, id)
 }
 
-func (s *deliveryService) FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time) ([]models.Delivery, error) {
-	return s.store.FindByFilters(ctx, nroCta, fechaAccion)
+func (s *deliveryService) FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega, limit, offset int) ([]models.Delivery, error) {
+	return s.store.FindByFilters(ctx, nroCta, fechaAccion, estado, limit, offset)
+}
+
+func (s *deliveryService) CountByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega) (int64, error) {
+	return s.store.CountByFilters(ctx, nroCta, fechaAccion, estado)
 }
 
 func (s *deliveryService) FindByRto(ctx context.Context, rto string, fechaAccion *time.Time) ([]models.Delivery, error) {
