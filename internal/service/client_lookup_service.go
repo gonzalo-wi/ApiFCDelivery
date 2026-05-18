@@ -14,8 +14,6 @@ import (
 
 const fallbackClientEmail = "gwinazki@el-jumillano.com.ar"
 
-// ClientLookupService resuelve el email de un cliente a partir de su nro_cta
-// consultando la API externa de El Jumillano.
 type ClientLookupService interface {
 	GetClientEmail(ctx context.Context, nroCta string) string
 }
@@ -27,10 +25,6 @@ type clientLookupService struct {
 	httpClient   *http.Client
 }
 
-// NewClientLookupService crea un ClientLookupService.
-// baseURL: e.g. "https://servicios.el-jumillano.com.ar:8443"
-// apiKey:  Bearer token para el endpoint de autenticación (valor de Authorization header)
-// defaultEmail: email de respaldo cuando el cliente no tiene email registrado
 func NewClientLookupService(baseURL, apiKey, defaultEmail string) ClientLookupService {
 	if defaultEmail == "" {
 		defaultEmail = fallbackClientEmail
@@ -45,9 +39,6 @@ func NewClientLookupService(baseURL, apiKey, defaultEmail string) ClientLookupSe
 	}
 }
 
-// GetClientEmail obtiene el email del cliente dado su nro_cta.
-// Normaliza nro_cta a minúsculas y sin espacios antes de consultar la API.
-// Si el cliente no tiene email o falla la consulta, retorna el email por defecto.
 func (s *clientLookupService) GetClientEmail(ctx context.Context, nroCta string) string {
 	// Normalizar: minúsculas, sin espacios
 	nroCta = strings.ToLower(strings.ReplaceAll(nroCta, " ", ""))
@@ -73,7 +64,6 @@ func (s *clientLookupService) GetClientEmail(ctx context.Context, nroCta string)
 	return email
 }
 
-// tokenResponse representa la respuesta del endpoint /jmap2token/token
 type tokenResponse struct {
 	Token      string `json:"token"`
 	Current    string `json:"current"`
@@ -114,7 +104,6 @@ func (s *clientLookupService) getToken(ctx context.Context) (string, error) {
 	return tr.Token, nil
 }
 
-// clientLookupResponse representa la respuesta del endpoint /jmap2/client
 type clientLookupResponse struct {
 	Success bool                 `json:"success"`
 	Data    []clientLookupRecord `json:"data"`

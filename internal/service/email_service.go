@@ -13,14 +13,12 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-// EmailService maneja el envío de emails
 type EmailService interface {
 	SendWorkOrderEmail(ctx context.Context, workOrder *models.WorkOrder, pdfPath string) error
 	SendHTMLEmail(ctx context.Context, to string, subject string, htmlBody string) error
 	SendHTMLEmailWithPDFBytes(ctx context.Context, to string, subject string, htmlBody string, pdfBytes []byte, pdfFilename string) error
 }
 
-// SMTPEmailConfig contiene la configuración del servicio SMTP
 type SMTPEmailConfig struct {
 	Host     string
 	Port     int
@@ -29,7 +27,6 @@ type SMTPEmailConfig struct {
 	To       string
 }
 
-// SMTPEmailService implementa el envío real de emails mediante SMTP
 type SMTPEmailService struct {
 	config SMTPEmailConfig
 }
@@ -61,7 +58,6 @@ func (s *SMTPEmailService) SendWorkOrderEmail(ctx context.Context, workOrder *mo
 	m.SetHeader("To", s.config.To)
 	m.SetHeader("Subject", fmt.Sprintf("Nueva Orden de Trabajo - %s", workOrder.OrderNumber))
 
-	// Cuerpo del email
 	body := fmt.Sprintf(`
 		<html>
 		<body>
@@ -118,7 +114,6 @@ func (s *SMTPEmailService) SendWorkOrderEmail(ctx context.Context, workOrder *mo
 	return nil
 }
 
-// SendHTMLEmail envía un email HTML genérico
 func (s *SMTPEmailService) SendHTMLEmail(ctx context.Context, to string, subject string, htmlBody string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", s.config.From)
@@ -126,7 +121,6 @@ func (s *SMTPEmailService) SendHTMLEmail(ctx context.Context, to string, subject
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", htmlBody)
 
-	// Configurar dialer SMTP
 	d := gomail.NewDialer(s.config.Host, s.config.Port, s.config.From, s.config.Password)
 
 	// Enviar email
@@ -147,7 +141,6 @@ func (s *SMTPEmailService) SendHTMLEmail(ctx context.Context, to string, subject
 	return nil
 }
 
-// SendHTMLEmailWithPDFBytes envía un email HTML con un PDF adjunto desde bytes
 func (s *SMTPEmailService) SendHTMLEmailWithPDFBytes(ctx context.Context, to string, subject string, htmlBody string, pdfBytes []byte, pdfFilename string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", s.config.From)
@@ -163,7 +156,6 @@ func (s *SMTPEmailService) SendHTMLEmailWithPDFBytes(ctx context.Context, to str
 		}))
 	}
 
-	// Configurar dialer SMTP
 	d := gomail.NewDialer(s.config.Host, s.config.Port, s.config.From, s.config.Password)
 
 	// Enviar email
@@ -187,7 +179,6 @@ func (s *SMTPEmailService) SendHTMLEmailWithPDFBytes(ctx context.Context, to str
 	return nil
 }
 
-// MockEmailService es una implementación de prueba que solo logea
 type MockEmailService struct{}
 
 func NewMockEmailService() EmailService {
@@ -203,8 +194,6 @@ func (s *MockEmailService) SendWorkOrderEmail(ctx context.Context, workOrder *mo
 		Str("pdf_attachment", pdfPath).
 		Msg("📧 [MOCK] Email sent (not really, this is a mock)")
 
-	// TODO: Implementar envío real con SMTP o servicio de email
-	// Por ahora solo logueamos
 	return nil
 }
 
@@ -226,12 +215,10 @@ func (s *MockEmailService) SendHTMLEmailWithPDFBytes(ctx context.Context, to str
 	return nil
 }
 
-// WorkOrderPDFGenerator maneja la generación de PDFs para órdenes de trabajo
 type WorkOrderPDFGenerator interface {
 	GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, operations []dto.OperationMessage) (string, error)
 }
 
-// MockWorkOrderPDFGenerator es una implementación de prueba
 type MockWorkOrderPDFGenerator struct{}
 
 func NewMockPDFService() WorkOrderPDFGenerator {
@@ -246,8 +233,5 @@ func (s *MockWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 		Str("pdf_path", pdfPath).
 		Int("operations_count", len(operations)).
 		Msg("📄 [MOCK] PDF generated (not really, this is a mock)")
-
-	// TODO: Implementar generación real de PDF con gofpdf o similar
-	// Por ahora retornamos una ruta ficticia
 	return pdfPath, nil
 }

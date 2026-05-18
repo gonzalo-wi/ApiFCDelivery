@@ -26,6 +26,7 @@ type DeliveryService interface {
 	Create(ctx context.Context, delivery *models.Delivery) error
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
+	CancelDelivery(ctx context.Context, id int) (*models.Delivery, error)
 	CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, bool, error)
 	FindPendingByNroCta(ctx context.Context, nroCta string) ([]models.Delivery, error)
 }
@@ -80,7 +81,6 @@ func (s *deliveryService) FindByFechaAndNroCta(ctx context.Context, fechaAccion,
 	return s.store.FindByFechaAndNroCta(ctx, fechaAccion, nroCta)
 }
 
-// Al momento de crear la entrega se genera el token para el cliente
 func (s *deliveryService) Create(ctx context.Context, delivery *models.Delivery) error {
 	delivery.Token = s.generateToken()
 	if delivery.FechaAccion.IsZero() {
@@ -97,15 +97,23 @@ func (s *deliveryService) Delete(ctx context.Context, id int) error {
 	return s.store.Delete(ctx, id)
 }
 
+func (s *deliveryService) CancelDelivery(ctx context.Context, id int) (*models.Delivery, error) {
+	delivery, err := s.store.FindByID(ctx, id)
+	if err != nil || delivery == nil {
+		return nil, fmt.Errorf("entrega no encontrada")
+	}
+	if delivery.Estado == models.Cancelado {
+		return nil, fmt.Errorf("la entrega ya se encuentra cancelada")
+	}
+	return s.store.CancelDelivery(ctx, id)
+}
+
 func (s *deliveryService) FindPendingByNroCta(ctx context.Context, nroCta string) ([]models.Delivery, error) {
 	return s.store.FindPendingByNroCta(ctx, nroCta)
 }
 
-// CreateFromInfobip crea una entrega desde el chatbot de Infobip
-// Implementa idempotencia: si ya existe una entrega con el mismo session_id, la devuelve
-// Maneja concurrencia de forma segura mediante índice único en BD y transacciones
 func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.InfobipDeliveryRequest) (*models.Delivery, bool, error) {
-	// Loguear siempre la request entrante para diagnóstico
+
 	log.Info().
 		Str("conversation_id", req.ConversationID).
 		Str("nro_cta", req.NroCta).
@@ -152,7 +160,6 @@ func (s *deliveryService) CreateFromInfobip(ctx context.Context, req dto.Infobip
 		conversationIDPtr = &req.ConversationID
 	}
 
-	// Crear la entrega
 	delivery := &models.Delivery{
 		NroCta:         req.NroCta,
 		NroRto:         req.NroRto,

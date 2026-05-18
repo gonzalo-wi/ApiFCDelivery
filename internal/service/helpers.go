@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-// parseFechaAccion parsea una fecha en formato YYYY-MM-DD o ISO 8601
-// Retorna la fecha actual si no se proporciona una fecha
 func parseFechaAccion(fechaStr string) (models.CustomDate, error) {
 	if fechaStr == "" {
 		return models.CustomDate{Time: time.Now()}, nil
@@ -24,7 +22,6 @@ func parseFechaAccion(fechaStr string) (models.CustomDate, error) {
 	return models.CustomDate{}, fmt.Errorf("formato de fecha inválido, use YYYY-MM-DD o ISO 8601")
 }
 
-// validateDispenserQuantity valida que la cantidad esté dentro de los límites permitidos
 func validateDispenserQuantity(cantidad uint) error {
 	if cantidad < constants.MIN_DISPENSERS {
 		return fmt.Errorf("debe especificar al menos %d dispenser", constants.MIN_DISPENSERS)
@@ -35,7 +32,6 @@ func validateDispenserQuantity(cantidad uint) error {
 	return nil
 }
 
-// createItemDispensers crea items de dispensers basados en cantidades por tipo
 func createItemDispensers(cantidadPie, cantidadMesada uint) []models.ItemDispenser {
 	items := make([]models.ItemDispenser, 0, 2)
 	if cantidadPie > 0 {

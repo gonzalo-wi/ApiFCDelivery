@@ -36,7 +36,6 @@ func NewDeliveryWithTermsService(
 	}
 }
 
-// InitiateDelivery crea una sesión de términos y guarda los datos de la entrega pendiente
 func (s *deliveryWithTermsService) InitiateDelivery(
 	ctx context.Context,
 	req dto.InitiateDeliveryRequest,
@@ -79,7 +78,6 @@ func (s *deliveryWithTermsService) InitiateDelivery(
 	}, nil
 }
 
-// CompleteDelivery crea la entrega después de que los términos fueron aceptados
 func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsToken string) (*models.Delivery, error) {
 
 	termsSession, err := s.termsSessionStore.FindByToken(ctx, termsToken)
@@ -137,7 +135,6 @@ func (s *deliveryWithTermsService) CompleteDelivery(ctx context.Context, termsTo
 	return delivery, nil
 }
 
-// GetDeliveryByTermsToken obtiene la entrega asociada a un token de términos
 func (s *deliveryWithTermsService) GetDeliveryByTermsToken(ctx context.Context, termsToken string) (*models.Delivery, error) {
 	termsSession, err := s.termsSessionStore.FindByToken(ctx, termsToken)
 	if err != nil {
@@ -149,7 +146,6 @@ func (s *deliveryWithTermsService) GetDeliveryByTermsToken(ctx context.Context, 
 	return nil, fmt.Errorf("funcionalidad no implementada")
 }
 
-// Función auxiliar para generar token de entrega (4 dígitos)
 func generateDeliveryToken() string {
 	return fmt.Sprintf("%04d", time.Now().UnixNano()%10000)
 }

@@ -80,7 +80,6 @@ func (c *infobipClient) SendWebhook(ctx context.Context, sessionID string, paylo
 	return nil
 }
 
-// SendEmail envía un email a través de la API de Infobip
 func (c *infobipClient) SendEmail(ctx context.Context, to string, subject string, htmlBody string) error {
 	url := fmt.Sprintf("%s/email/3/send", c.baseURL)
 

@@ -12,14 +12,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// RabbitMQPublisher gestiona la publicación de mensajes a RabbitMQ
 type RabbitMQPublisher struct {
 	conn   *amqp.Connection
 	ch     *amqp.Channel
 	config *config.RabbitMQConfig
 }
 
-// NewRabbitMQPublisher crea un nuevo publisher
 func NewRabbitMQPublisher(rabbitConfig *config.RabbitMQConfig) (*RabbitMQPublisher, error) {
 	conn, err := config.ConnectRabbitMQ(rabbitConfig)
 	if err != nil {
@@ -32,7 +30,6 @@ func NewRabbitMQPublisher(rabbitConfig *config.RabbitMQConfig) (*RabbitMQPublish
 		return nil, fmt.Errorf("failed to open channel: %w", err)
 	}
 
-	// Declarar la cola
 	_, err = config.DeclareQueue(ch, rabbitConfig.Queue)
 	if err != nil {
 		ch.Close()
@@ -52,7 +49,6 @@ func NewRabbitMQPublisher(rabbitConfig *config.RabbitMQConfig) (*RabbitMQPublish
 	}, nil
 }
 
-// PublishWorkOrder publica un mensaje para crear una orden de trabajo
 func (p *RabbitMQPublisher) PublishWorkOrder(ctx context.Context, message dto.WorkOrderMessageDTO) error {
 	body, err := json.Marshal(message)
 	if err != nil {
@@ -61,14 +57,14 @@ func (p *RabbitMQPublisher) PublishWorkOrder(ctx context.Context, message dto.Wo
 
 	err = p.ch.PublishWithContext(
 		ctx,
-		"",             // exchange (default)
-		p.config.Queue, // routing key (queue name)
-		false,          // mandatory
-		false,          // immediate
+		"",
+		p.config.Queue,
+		false,
+		false,
 		amqp.Publishing{
 			ContentType:  "application/json",
 			Body:         body,
-			DeliveryMode: amqp.Persistent, // Mensaje persistente
+			DeliveryMode: amqp.Persistent,
 		},
 	)
 
@@ -90,7 +86,6 @@ func (p *RabbitMQPublisher) PublishWorkOrder(ctx context.Context, message dto.Wo
 	return nil
 }
 
-// Close cierra las conexiones
 func (p *RabbitMQPublisher) Close() error {
 	if err := p.ch.Close(); err != nil {
 		log.Error().Err(err).Msg("Error closing RabbitMQ channel")
@@ -103,7 +98,6 @@ func (p *RabbitMQPublisher) Close() error {
 	return nil
 }
 
-// IsHealthy verifica si la conexión está activa
 func (p *RabbitMQPublisher) IsHealthy() bool {
 	return p.conn != nil && !p.conn.IsClosed()
 }

@@ -24,6 +24,7 @@ type DeliveryStore interface {
 	Create(ctx context.Context, delivery *models.Delivery) error
 	Update(ctx context.Context, delivery *models.Delivery) error
 	Delete(ctx context.Context, id int) error
+	CancelDelivery(ctx context.Context, id int) (*models.Delivery, error)
 	CancelExpiredPending(ctx context.Context) (int64, error)
 	FindPendingByNroCta(ctx context.Context, nroCta string) ([]models.Delivery, error)
 }
@@ -209,6 +210,28 @@ func (s *deliveryStore) FindPendingByNroCta(ctx context.Context, nroCta string) 
 		return nil, fmt.Errorf("error buscando deliveries pendientes por nro_cta: %w", err)
 	}
 	return deliveries, nil
+}
+
+// CancelDelivery cancela un delivery específico por ID si no está ya cancelado
+func (s *deliveryStore) CancelDelivery(ctx context.Context, id int) (*models.Delivery, error) {
+	delivery, err := s.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if delivery == nil {
+		return nil, fmt.Errorf("delivery con id %d no encontrado", id)
+	}
+	result := s.db.WithContext(ctx).
+		Model(delivery).
+		Updates(map[string]interface{}{
+			"estado":     models.Cancelado,
+			"updated_at": time.Now(),
+		})
+	if result.Error != nil {
+		return nil, fmt.Errorf("error cancelando delivery: %w", result.Error)
+	}
+	delivery.Estado = models.Cancelado
+	return delivery, nil
 }
 
 // CancelExpiredPending cancela todos los deliveries en estado Pendiente cuya fecha_accion ya pasó

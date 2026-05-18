@@ -27,8 +27,6 @@ func NewPDFService(workOrderStore store.WorkOrderStore) PDFService {
 
 func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.WorkOrderRequest) ([]byte, string, error) {
 	orderNumber := workOrder.OrderNumber
-
-	// Verificar si ya existe un work_order para este delivery (evitar duplicado en reintentos)
 	alreadyExists := false
 	if workOrder.DeliveryID > 0 {
 		existing, err := s.workOrderStore.FindByDeliveryID(ctx, workOrder.DeliveryID)
@@ -308,7 +306,6 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.Cell(50, 6, constants.PDFLabelDateTime)
 	pdf.SetFont("Arial", "", 10)
 
-	// Usar la fecha de aceptación de términos si está disponible
 	acceptedDateTime := workOrder.AcceptedAt
 	if acceptedDateTime == "" {
 		acceptedDateTime = time.Now().Format("02/01/2006 15:04")
@@ -328,14 +325,10 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	pdf.Cell(0, 6, tokenDisplay)
 	pdf.Ln(2)
 
-	// Dibujar recuadro
 	pdf.Rect(15, acceptanceStartY, 180, 22, "D")
-	// Ubicar el texto de IMPORTANTE más cerca del recuadro
 	pdf.SetY(acceptanceStartY + 21)
 
 	pdf.Ln(0)
-
-	// Generar el PDF en memoria
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
 		return nil, "", err
@@ -344,26 +337,19 @@ func (s *pdfService) GenerateWorkOrderPDF(ctx context.Context, workOrder *dto.Wo
 	return buf.Bytes(), orderNumber, nil
 }
 
-// ========== WorkOrderPDFGenerator Implementation ==========
-
-// RealWorkOrderPDFGenerator implementación real para el consumer de RabbitMQ
 type RealWorkOrderPDFGenerator struct{}
 
 func NewRealWorkOrderPDFGenerator() WorkOrderPDFGenerator {
 	return &RealWorkOrderPDFGenerator{}
 }
 
-// GenerateWorkOrderPDF genera un PDF y lo guarda en disco (para el consumer)
 func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, workOrder *models.WorkOrder, operations []dto.OperationMessage) (string, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 	pdf.SetMargins(15, 15, 15)
-
 	colorPrimary := []int{41, 128, 185}
 	colorText := []int{52, 73, 94}
 	colorAccent := []int{52, 152, 219}
-
-	// Header
 	pdf.SetFillColor(255, 255, 255)
 	pdf.Rect(0, 0, 210, 50, "F")
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
@@ -378,7 +364,6 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 	pdf.SetX(15)
 	pdf.CellFormat(60, 8, constants.PDFHeaderTitle, "", 0, "L", false, 0, "")
 
-	// Order Number Box
 	pdf.SetDrawColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetLineWidth(0.5)
 	pdf.Rect(140, 10, 55, 30, "D")
@@ -394,7 +379,6 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
 	pdf.SetLineWidth(0.2)
 
-	// Service Section
 	pdf.SetY(58)
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
@@ -425,7 +409,6 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 	pdf.Cell(0, 7, workOrder.NroRto)
 	pdf.Ln(10)
 
-	// Client Section
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetTextColor(255, 255, 255)
@@ -451,7 +434,6 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 	pdf.Cell(0, 7, workOrder.Localidad)
 	pdf.Ln(10)
 
-	// Equipment Section
 	if len(operations) > 0 {
 		pdf.SetFont("Arial", "B", 11)
 		pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
@@ -504,16 +486,13 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 		pdf.Ln(5)
 	}
 
-	// Task Section
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetTextColor(255, 255, 255)
 	pdf.CellFormat(0, 8, constants.PDFSectionTask, "", 1, "L", true, 0, "")
 	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
 	pdf.Ln(2)
-
 	rectStartY := pdf.GetY()
-
 	var tareaTexto string
 	switch workOrder.TipoAccion {
 	case "Instalacion":
@@ -530,14 +509,11 @@ func (s *RealWorkOrderPDFGenerator) GenerateWorkOrderPDF(ctx context.Context, wo
 	pdf.SetTextColor(colorText[0], colorText[1], colorText[2])
 	pdf.SetX(17)
 	pdf.MultiCell(176, 5, tareaTexto, "", "L", false)
-
 	pdf.SetDrawColor(colorAccent[0], colorAccent[1], colorAccent[2])
 	pdf.SetLineWidth(0.3)
 	pdf.Rect(15, rectStartY, 180, 35, "D")
 	pdf.SetY(rectStartY + 35)
 	pdf.Ln(2)
-
-	// Guardar PDF en disco temporal
 	pdfPath := fmt.Sprintf("/tmp/work_order_%s.pdf", workOrder.OrderNumber)
 	err := pdf.OutputFileAndClose(pdfPath)
 	if err != nil {

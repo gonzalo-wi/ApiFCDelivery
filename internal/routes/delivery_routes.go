@@ -24,6 +24,7 @@ func RegisterPublicDeliveryGetRoutes(router *gin.RouterGroup, handler *transport
 		deliveries.GET("/infobip/pending", handler.GetPendingByNroCta)
 		deliveries.GET("/:id", handler.GetDeliveryByID)
 		deliveries.PUT("/:id", handler.UpdateDelivery)
+		deliveries.PATCH("/:id/cancel", handler.CancelDelivery)
 	}
 }
 

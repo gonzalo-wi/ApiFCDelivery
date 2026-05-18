@@ -238,6 +238,50 @@ func (h *DeliveryHandler) DeleteDelivery(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": constants.MsgDeliveryDeleted})
 }
 
+func (h *DeliveryHandler) CancelDelivery(c *gin.Context) {
+	ctx := c.Request.Context()
+	idParam := c.Param("id")
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": constants.MsgInvalidID})
+		return
+	}
+
+	delivery, err := h.service.CancelDelivery(ctx, id)
+	if err != nil {
+		if err.Error() == "la entrega ya se encuentra cancelada" {
+			c.JSON(http.StatusConflict, gin.H{"error": constants.MsgDeliveryAlreadyCancelled})
+			return
+		}
+		if err.Error() == "entrega no encontrada" {
+			c.JSON(http.StatusNotFound, gin.H{"error": constants.MsgDeliveryNotFound})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if h.auditService != nil {
+		h.auditService.LogDeliveryUpdated(
+			ctx,
+			id,
+			"api_client",
+			"postman",
+			nil,
+			delivery,
+			map[string]interface{}{
+				"action": "cancelled",
+			},
+		)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  constants.MsgDeliveryCancelled,
+		"delivery": dto.ToDeliveryResponse(delivery),
+	})
+}
+
 func (h *DeliveryHandler) GetDeliveriesByRto(c *gin.Context) {
 	ctx := c.Request.Context()
 	nroRto := c.Query("nro_rto")
