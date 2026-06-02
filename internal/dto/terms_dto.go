@@ -8,12 +8,14 @@ import (
 type InfobipSessionRequest struct {
 	SessionID      string `json:"sessionId" binding:"required"`
 	ConversationID string `json:"conversationId" binding:"required"`
+	Delivery       int    `json:"delivery"`
 }
 
 type CreateTermsSessionResponse struct {
 	Token     string    `json:"token"`
 	URL       string    `json:"url"`
 	ExpiresAt time.Time `json:"expiresAt"`
+	Company   string    `json:"company,omitempty"`
 }
 
 type TermsSessionStatusResponse struct {
@@ -22,6 +24,7 @@ type TermsSessionStatusResponse struct {
 	ExpiresAt  time.Time                 `json:"expiresAt"`
 	AcceptedAt *time.Time                `json:"acceptedAt,omitempty"`
 	RejectedAt *time.Time                `json:"rejectedAt,omitempty"`
+	Company    string                    `json:"company,omitempty"`
 }
 
 type TermsActionRequest struct {

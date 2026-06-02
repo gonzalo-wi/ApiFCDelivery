@@ -35,4 +35,5 @@ type TermsSession struct {
 	NotifyStatus   NotifyStatus       `gorm:"not null;default:'PENDING'" json:"notify_status"`
 	NotifyAttempts int                `gorm:"default:0" json:"notify_attempts"`
 	LastError      string             `json:"last_error,omitempty"`
+	Company        string             `json:"company,omitempty"`
 }

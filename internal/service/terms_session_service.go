@@ -15,7 +15,7 @@ import (
 )
 
 type TermsSessionService interface {
-	CreateSession(ctx context.Context, sessionID, conversationID, appBaseURL string, ttlHours int) (*dto.CreateTermsSessionResponse, error)
+	CreateSession(ctx context.Context, sessionID, conversationID, appBaseURL string, ttlHours, delivery int) (*dto.CreateTermsSessionResponse, error)
 	GetSessionStatus(ctx context.Context, token string) (*dto.TermsSessionStatusResponse, error)
 	GetSessionBySessionID(ctx context.Context, sessionID string) (*dto.TermsSessionStatusResponse, error)
 	AcceptTerms(ctx context.Context, token, ip, userAgent string) (*dto.TermsActionResponse, error)
@@ -41,12 +41,25 @@ func NewTermsSessionService(
 	}
 }
 
+// resolveCompany determina la empresa según el número de reparto:
+// 0-300 → Jumillano, 400-500 → LUFRAN.
+func resolveCompany(delivery int) string {
+	switch {
+	case delivery >= 0 && delivery <= 300:
+		return "Jumillano"
+	case delivery >= 400 && delivery <= 500:
+		return "LUFRAN"
+	default:
+		return ""
+	}
+}
+
 // CreateSession crea una nueva sesión de términos y genera un token único.
 // sessionID: identificador de sesión de Infobip (se usa para el webhook de respuesta).
 // conversationID: identificador único de conversación (clave de idempotencia).
 //
 //	Si está vacío (flujo de portal/contact center), se usa sessionID como fallback.
-func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conversationID, appBaseURL string, ttlHours int) (*dto.CreateTermsSessionResponse, error) {
+func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conversationID, appBaseURL string, ttlHours, delivery int) (*dto.CreateTermsSessionResponse, error) {
 	// Determinar la clave de idempotencia
 	idempotencyKey := conversationID
 	if idempotencyKey == "" {
@@ -67,6 +80,7 @@ func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conv
 			Token:     existing.Token,
 			URL:       fmt.Sprintf("%s/terms/%s", appBaseURL, existing.Token),
 			ExpiresAt: existing.ExpiresAt,
+			Company:   existing.Company,
 		}, nil
 	}
 	token, err := generateSecureToken()
@@ -75,6 +89,7 @@ func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conv
 	}
 	now := time.Now()
 	expiresAt := now.Add(time.Duration(ttlHours) * time.Hour)
+	company := resolveCompany(delivery)
 	session := &models.TermsSession{
 		Token:          token,
 		SessionID:      sessionID,
@@ -83,6 +98,7 @@ func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conv
 		CreatedAt:      now,
 		ExpiresAt:      expiresAt,
 		NotifyStatus:   models.NotifyPending,
+		Company:        company,
 	}
 	if err := s.store.Create(ctx, session); err != nil {
 		return nil, fmt.Errorf(constants.ErrCreatingSession, err)
@@ -97,6 +113,7 @@ func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conv
 		Token:     token,
 		URL:       fmt.Sprintf("%s/terms/%s", appBaseURL, token),
 		ExpiresAt: expiresAt,
+		Company:   company,
 	}, nil
 }
 
@@ -118,6 +135,7 @@ func (s *termsSessionService) GetSessionStatus(ctx context.Context, token string
 		ExpiresAt:  session.ExpiresAt,
 		AcceptedAt: session.AcceptedAt,
 		RejectedAt: session.RejectedAt,
+		Company:    session.Company,
 	}, nil
 }
 
@@ -224,6 +242,7 @@ func (s *termsSessionService) GetSessionBySessionID(ctx context.Context, session
 		ExpiresAt:  session.ExpiresAt,
 		AcceptedAt: session.AcceptedAt,
 		RejectedAt: session.RejectedAt,
+		Company:    session.Company,
 	}, nil
 }
 
