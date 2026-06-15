@@ -70,6 +70,7 @@ func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conv
 	if err != nil {
 		return nil, fmt.Errorf(constants.ErrVerifyingExistingSession, err)
 	}
+	// Reusar sesión PENDING vigente (idempotencia)
 	if existing != nil && existing.Status == models.StatusPending && time.Now().Before(existing.ExpiresAt) {
 		log.Info().
 			Str("conversation_id", idempotencyKey).
@@ -83,6 +84,7 @@ func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conv
 			Company:   existing.Company,
 		}, nil
 	}
+
 	token, err := generateSecureToken()
 	if err != nil {
 		return nil, fmt.Errorf(constants.ErrGeneratingToken, err)
@@ -90,18 +92,46 @@ func (s *termsSessionService) CreateSession(ctx context.Context, sessionID, conv
 	now := time.Now()
 	expiresAt := now.Add(time.Duration(ttlHours) * time.Hour)
 	company := resolveCompany(delivery)
-	session := &models.TermsSession{
-		Token:          token,
-		SessionID:      sessionID,
-		ConversationID: idempotencyKey,
-		Status:         models.StatusPending,
-		CreatedAt:      now,
-		ExpiresAt:      expiresAt,
-		NotifyStatus:   models.NotifyPending,
-		Company:        company,
-	}
-	if err := s.store.Create(ctx, session); err != nil {
-		return nil, fmt.Errorf(constants.ErrCreatingSession, err)
+
+	// Si ya existe un registro con ese conversationID (expirado/aceptado/rechazado),
+	// actualizarlo en lugar de insertar uno nuevo para no violar el unique index.
+	if existing != nil {
+		existing.Token = token
+		existing.SessionID = sessionID
+		existing.Status = models.StatusPending
+		existing.CreatedAt = now
+		existing.ExpiresAt = expiresAt
+		existing.NotifyStatus = models.NotifyPending
+		existing.NotifyAttempts = 0
+		existing.LastError = ""
+		existing.AcceptedAt = nil
+		existing.RejectedAt = nil
+		existing.IP = ""
+		existing.UserAgent = ""
+		existing.Company = company
+		if err := s.store.Update(ctx, existing); err != nil {
+			return nil, fmt.Errorf(constants.ErrCreatingSession, err)
+		}
+		log.Info().
+			Str("conversation_id", idempotencyKey).
+			Str("session_id", sessionID).
+			Str("token", token).
+			Time("expires_at", expiresAt).
+			Msg("Sesión existente renovada (reset a PENDING)")
+	} else {
+		session := &models.TermsSession{
+			Token:          token,
+			SessionID:      sessionID,
+			ConversationID: idempotencyKey,
+			Status:         models.StatusPending,
+			CreatedAt:      now,
+			ExpiresAt:      expiresAt,
+			NotifyStatus:   models.NotifyPending,
+			Company:        company,
+		}
+		if err := s.store.Create(ctx, session); err != nil {
+			return nil, fmt.Errorf(constants.ErrCreatingSession, err)
+		}
 	}
 	log.Info().
 		Str("conversation_id", idempotencyKey).
@@ -227,7 +257,7 @@ func (s *termsSessionService) RejectTerms(ctx context.Context, token, ip, userAg
 func (s *termsSessionService) GetSessionBySessionID(ctx context.Context, sessionID string) (*dto.TermsSessionStatusResponse, error) {
 	session, err := s.store.FindBySessionID(ctx, sessionID)
 	if err != nil {
-		return nil, fmt.Errorf(constants.MsgSessionNotFound, sessionID)
+		return nil, fmt.Errorf("%s: %s", constants.MsgSessionNotFound, sessionID)
 	}
 	// Verificar si está expirada
 	if session.Status == models.StatusPending && time.Now().After(session.ExpiresAt) {

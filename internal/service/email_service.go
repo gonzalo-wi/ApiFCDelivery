@@ -17,6 +17,7 @@ type EmailService interface {
 	SendWorkOrderEmail(ctx context.Context, workOrder *models.WorkOrder, pdfPath string) error
 	SendHTMLEmail(ctx context.Context, to string, subject string, htmlBody string) error
 	SendHTMLEmailWithPDFBytes(ctx context.Context, to string, subject string, htmlBody string, pdfBytes []byte, pdfFilename string) error
+	SendHTMLEmailWithPDFBytesAndLogo(ctx context.Context, to string, subject string, htmlBody string, pdfBytes []byte, pdfFilename string, logoPath string) error
 }
 
 type SMTPEmailConfig struct {
@@ -179,6 +180,34 @@ func (s *SMTPEmailService) SendHTMLEmailWithPDFBytes(ctx context.Context, to str
 	return nil
 }
 
+func (s *SMTPEmailService) SendHTMLEmailWithPDFBytesAndLogo(ctx context.Context, to string, subject string, htmlBody string, pdfBytes []byte, pdfFilename string, logoPath string) error {
+	m := gomail.NewMessage()
+	m.SetHeader("From", s.config.From)
+	m.SetHeader("To", to)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/html", htmlBody)
+
+	if len(pdfBytes) > 0 && pdfFilename != "" {
+		m.Attach(pdfFilename, gomail.SetCopyFunc(func(w io.Writer) error {
+			_, err := w.Write(pdfBytes)
+			return err
+		}))
+	}
+
+	if logoPath != "" {
+		m.Embed(logoPath)
+	}
+
+	d := gomail.NewDialer(s.config.Host, s.config.Port, s.config.From, s.config.Password)
+	if err := d.DialAndSend(m); err != nil {
+		log.Error().Err(err).Str("to", to).Str("subject", subject).Msg("Failed to send email with logo")
+		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	log.Info().Str("to", to).Str("subject", subject).Msg("📧 Email with logo sent successfully")
+	return nil
+}
+
 type MockEmailService struct{}
 
 func NewMockEmailService() EmailService {
@@ -202,6 +231,11 @@ func (s *MockEmailService) SendHTMLEmail(ctx context.Context, to string, subject
 		Str("to", to).
 		Str("subject", subject).
 		Msg("📧 [MOCK] HTML email sent (not really, this is a mock)")
+	return nil
+}
+
+func (s *MockEmailService) SendHTMLEmailWithPDFBytesAndLogo(ctx context.Context, to string, subject string, htmlBody string, pdfBytes []byte, pdfFilename string, logoPath string) error {
+	log.Info().Str("to", to).Str("subject", subject).Str("logo", logoPath).Msg("📧 [MOCK] Email with logo sent (not really, this is a mock)")
 	return nil
 }
 

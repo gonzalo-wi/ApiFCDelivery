@@ -314,13 +314,14 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 	}
 	emailHTML := s.buildCompletionEmailHTML(delivery, installedCodes, orderNumber)
 	emailSubject := emailTextsForTipoEntrega(delivery.TipoEntrega).subject
-	err = s.emailService.SendHTMLEmailWithPDFBytes(
+	err = s.emailService.SendHTMLEmailWithPDFBytesAndLogo(
 		ctx,
 		emailTo,
 		emailSubject,
 		emailHTML,
 		pdfBytes,
 		fmt.Sprintf("orden_trabajo_%s.pdf", orderNumber),
+		"assets/images/fondo-color.png",
 	)
 
 	if err != nil {
@@ -347,8 +348,8 @@ func emailTextsForTipoEntrega(tipo models.TipoEntrega) completionEmailTexts {
 		return completionEmailTexts{
 			subject:        "Retiro Completado - El Jumillano",
 			title:          "Retiro Completado",
-			subtitle:       "El retiro ha sido realizado exitosamente",
-			message:        "Nos complace informarle que el retiro de su/s dispenser/s de agua ha sido realizado exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha completado el trabajo correspondiente.",
+			subtitle:       "El retiro fue realizado exitosamente",
+			message:        "Te informamos que el retiro del/los dispenser/s de agua fue realizado exitosamente.",
 			cardTitle:      "Detalles del Retiro",
 			dispenserTitle: "Equipos Retirados",
 			pdfNotice:      "Encontrará el comprobante del retiro en formato PDF con todos los detalles técnicos y números de serie de los equipos retirados.",
@@ -357,8 +358,8 @@ func emailTextsForTipoEntrega(tipo models.TipoEntrega) completionEmailTexts {
 		return completionEmailTexts{
 			subject:        "Recambio Completado - El Jumillano",
 			title:          "Recambio Completado",
-			subtitle:       "El recambio ha sido realizado exitosamente",
-			message:        "Nos complace informarle que el recambio de su/s dispenser/s de agua ha sido completado exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha verificado el correcto funcionamiento de los nuevos equipos.",
+			subtitle:       "El recambio fue realizado exitosamente",
+			message:        "Te informamos que el recambio del/los dispenser/s de agua fue realizado exitosamente.",
 			cardTitle:      "Detalles del Recambio",
 			dispenserTitle: "Equipos Instalados",
 			pdfNotice:      "Encontrará el comprobante del recambio en formato PDF con todos los detalles técnicos y números de serie de los equipos.",
@@ -367,8 +368,8 @@ func emailTextsForTipoEntrega(tipo models.TipoEntrega) completionEmailTexts {
 		return completionEmailTexts{
 			subject:        "Servicio Técnico Completado - El Jumillano",
 			title:          "Servicio Técnico Completado",
-			subtitle:       "El servicio técnico ha sido completado",
-			message:        "Nos complace informarle que el servicio técnico de su/s dispenser/s de agua ha sido completado exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha verificado el correcto funcionamiento de los equipos.",
+			subtitle:       "El servicio técnico fue completado exitosamente",
+			message:        "Te informamos que el servicio técnico del/los dispenser/s de agua fue realizado exitosamente.",
 			cardTitle:      "Detalles del Servicio Técnico",
 			dispenserTitle: "Equipos Atendidos",
 			pdfNotice:      "Encontrará el comprobante del servicio técnico en formato PDF con todos los detalles del trabajo realizado.",
@@ -377,8 +378,8 @@ func emailTextsForTipoEntrega(tipo models.TipoEntrega) completionEmailTexts {
 		return completionEmailTexts{
 			subject:        "Servicio Completado - El Jumillano",
 			title:          "Servicio Completado",
-			subtitle:       "El servicio ha sido completado exitosamente",
-			message:        "Nos complace informarle que el servicio en su/s dispenser/s de agua ha sido completado exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha realizado todas las tareas correspondientes.",
+			subtitle:       "El servicio fue completado exitosamente",
+			message:        "Te informamos que el servicio en el/los dispenser/s de agua fue realizado exitosamente.",
 			cardTitle:      "Detalles del Servicio",
 			dispenserTitle: "Equipos Involucrados",
 			pdfNotice:      "Encontrará el comprobante del servicio en formato PDF con todos los detalles técnicos correspondientes.",
@@ -386,347 +387,171 @@ func emailTextsForTipoEntrega(tipo models.TipoEntrega) completionEmailTexts {
 	default:
 		return completionEmailTexts{
 			subject:        "Instalación Completada - El Jumillano",
-			title:          "Instalación Completada",
-			subtitle:       "Su servicio ya está en funcionamiento",
-			message:        "Nos complace informarle que la instalación de su/s dispenser/s de agua ha sido completada exitosamente en <strong>%s</strong>. Nuestro equipo técnico ha verificado el correcto funcionamiento de todos los equipos.",
+			title:          "Instalación completada",
+			subtitle:       "Tu servicio ya está en funcionamiento",
+			message:        "Te informamos que la instalación de tu dispenser frío/calor se realizó exitosamente.",
 			cardTitle:      "Detalles de su Instalación",
 			dispenserTitle: "Equipos Instalados",
-			pdfNotice:      "Encontrará el comprobante de instalación en formato PDF con todos los detalles técnicos y números de serie de los equipos instalados.",
+			pdfNotice:      "En este correo encontrás el comprobante de instalación en formato PDF con todos los detalles técnicos y los números de serie de los equipos instalados.",
 		}
 	}
 }
 
 func (s *mobileDeliveryService) buildCompletionEmailHTML(delivery *models.Delivery, dispensers []string, orderNumber string) string {
 	texts := emailTextsForTipoEntrega(delivery.TipoEntrega)
-	message := fmt.Sprintf(texts.message, delivery.Locality)
+	message := texts.message
+
+	logoSrc := "cid:blanco.png"
+
 	dispensersRows := ""
 	for i, code := range dispensers {
 		bgColor := "#ffffff"
 		if i%2 == 1 {
-			bgColor = "#f8f9fa"
+			bgColor = "#F5F5F5"
 		}
 		dispensersRows += fmt.Sprintf(`
-			<tr style="background-color: %s;">
-				<td style="padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center; font-weight: 600; color: #2c3e50;">%d</td>
-				<td style="padding: 12px; border-bottom: 1px solid #e0e0e0; font-family: 'Courier New', monospace; color: #1976d2; font-weight: 500;">%s</td>
-			</tr>`, bgColor, i+1, code)
+				<tr>
+					<td bgcolor="%s" style="padding:10px 15px;border-bottom:1px solid #e0e0e0;text-align:center;font-size:13px;color:#1B5EA6;font-weight:bold;font-family:'Montserrat',Arial,sans-serif;">%d</td>
+					<td bgcolor="%s" style="padding:10px 15px;border-bottom:1px solid #e0e0e0;font-size:13px;color:#0099CC;font-family:'Montserrat',Arial,sans-serif;">%s</td>
+				</tr>`, bgColor, i+1, bgColor, code)
 	}
-	return fmt.Sprintf(`
-<!DOCTYPE html>
+
+	return fmt.Sprintf(`<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>%s</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            line-height: 1.6; 
-            color: #333;
-            background-color: #ffffff;
-        }
-        .email-wrapper { 
-            background-color: #ffffff;
-            padding: 40px 20px;
-        }
-        .container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background-color: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-        }
-        .header { 
-            background: linear-gradient(135deg, #1e88e5 0%%, #1565c0 100%%);
-            color: white; 
-            padding: 40px 30px;
-            text-align: center;
-            position: relative;
-        }
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background: #ffffff;
-            border-radius: 50%% 50%% 0 0 / 100%% 100%% 0 0;
-        }
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            background-color: #4caf50;
-            border-radius: 50%%;
-            display: table-cell;
-            vertical-align: middle;
-            text-align: center;
-            margin: 0 auto 15px;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
-            font-size: 52px;
-            line-height: 80px;
-            color: white;
-            font-weight: bold;
-        }
-        .header h1 { 
-            font-size: 28px; 
-            margin: 0;
-            font-weight: 600;
-        }
-        .header p {
-            margin-top: 10px;
-            font-size: 16px;
-            opacity: 0.95;
-        }
-        .content { 
-            padding: 50px 30px 30px;
-        }
-        .greeting {
-            font-size: 18px;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        .greeting strong {
-            color: #1976d2;
-            font-weight: 600;
-        }
-        .message {
-            font-size: 16px;
-            color: #555;
-            margin-bottom: 30px;
-            line-height: 1.8;
-        }
-        .info-card { 
-            background: linear-gradient(135deg, #e8f5e9 0%%, #c8e6c9 100%%);
-            padding: 25px;
-            margin: 25px 0;
-            border-radius: 12px;
-            border-left: 5px solid #4caf50;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-        }
-        .info-card h3 {
-            color: #2e7d32;
-            font-size: 18px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-        .info-card h3::before {
-            content: '📋';
-            margin-right: 10px;
-            font-size: 24px;
-        }
-        .info-row {
-            display: flex;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(46, 125, 50, 0.1);
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            font-weight: 600;
-            color: #2e7d32;
-            min-width: 140px;
-            font-size: 14px;
-        }
-        .info-value {
-            color: #1b5e20;
-            font-size: 14px;
-        }
-        .dispensers-section {
-            margin: 30px 0;
-        }
-        .dispensers-section h3 {
-            color: #2c3e50;
-            font-size: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-        }
-        .dispensers-section h3::before {
-            content: '🔧';
-            margin-right: 10px;
-            font-size: 26px;
-        }
-        .dispensers-table {
-            width: 100%%;
-            border-collapse: collapse;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        .dispensers-table thead {
-            background: linear-gradient(135deg, #1e88e5 0%%, #1565c0 100%%);
-            color: white;
-        }
-        .dispensers-table th {
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .dispensers-table th:first-child {
-            text-align: center;
-            width: 80px;
-        }
-        .pdf-notice {
-            background: linear-gradient(135deg, #fff3e0 0%%, #ffe0b2 100%%);
-            padding: 20px;
-            border-radius: 12px;
-            border-left: 5px solid #ff9800;
-            margin: 25px 0;
-            display: flex;
-            align-items: center;
-        }
-        .pdf-notice::before {
-            content: '📎';
-            font-size: 32px;
-            margin-right: 15px;
-        }
-        .pdf-notice p {
-            margin: 0;
-            color: #e65100;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-        .cta-section {
-            background: linear-gradient(135deg, #e3f2fd 0%%, #bbdefb 100%%);
-            padding: 25px;
-            border-radius: 12px;
-            text-align: center;
-            margin: 25px 0;
-        }
-        .cta-section p {
-            color: #1565c0;
-            font-size: 15px;
-            margin-bottom: 0;
-        }
-        .cta-section strong {
-            color: #0d47a1;
-            font-size: 16px;
-        }
-        .footer { 
-            background: linear-gradient(135deg, #37474f 0%%, #263238 100%%);
-            color: #b0bec5;
-            text-align: center; 
-            padding: 30px;
-        }
-        .footer-brand {
-            font-size: 20px;
-            font-weight: 700;
-            color: #ffffff;
-            margin-bottom: 10px;
-        }
-        .footer p { 
-            font-size: 13px;
-            margin: 5px 0;
-            line-height: 1.6;
-        }
-        .footer-note {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        @media only screen and (max-width: 600px) {
-            .email-wrapper { padding: 20px 10px; }
-            .content { padding: 30px 20px 20px; }
-            .header { padding: 30px 20px; }
-            .info-row { flex-direction: column; }
-            .info-label { min-width: auto; margin-bottom: 5px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>%s</title>
 </head>
-<body>
-    <div class="email-wrapper">
-        <div class="container">
-            <div class="header">
-                <div class="success-icon">✓</div>
-                <h1>%s</h1>
-                <p>%s</p>
-            </div>
-            
-            <div class="content">
-                <div class="greeting">
-                    Estimado/a <strong>%s</strong>,
-                </div>
-                
-                <div class="message">
-                    %s
-                </div>
-                
-                <div class="info-card">
-                    <h3>%s</h3>
-                    <div class="info-row">
-                        <span class="info-label">Orden de Trabajo:</span>
-                        <span class="info-value"><strong>%s</strong></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">📍 Dirección:</span>
-                        <span class="info-value">%s</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">📅 Fecha:</span>
-                        <span class="info-value">%s</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">📦 Dispensers:</span>
-                        <span class="info-value"><strong>%d unidades</strong></span>
-                    </div>
-                </div>
+<body style="margin:0;padding:0;background-color:#F5F5F5;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
+%s
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;color:#F5F5F5;">%s&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+<table width="100%%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F5F5F5">
+<tr><td align="center" style="padding:20px 10px;">
 
-                <div class="dispensers-section">
-                    <h3>%s</h3>
-                    <table class="dispensers-table">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Número de Serie</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            %s
-                        </tbody>
-                    </table>
-                </div>
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background-color:#ffffff;">
 
-                <div class="pdf-notice">
-                    <p>
-                        <strong>Documento Adjunto:</strong> %s
-                    </p>
-                </div>
+<!-- HEADER -->
+<tr>
+  <td bgcolor="#1B5EA6" style="padding:18px 24px;">
+    <table width="100%%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td width="65%%" valign="middle">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td width="46" height="46" bgcolor="#4CAF50" style="border-radius:23px;text-align:center;vertical-align:middle;width:46px;height:46px;">
+                <span style="color:#ffffff;font-size:24px;font-weight:bold;line-height:46px;display:block;font-family:'Montserrat',Arial,sans-serif;">&#10003;</span>
+              </td>
+              <td style="padding-left:12px;">
+                <p style="margin:0;color:#ffffff;font-size:19px;font-weight:bold;line-height:1.2;font-family:'Montserrat',Arial,sans-serif;">%s</p>
+                <p style="margin:4px 0 0 0;color:rgba(255,255,255,0.88);font-size:12px;font-family:'Montserrat',Arial,sans-serif;">%s</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+        <td width="35%%" align="right" valign="middle">
+          <img src="%s" alt="IVESS" style="max-height:52px;max-width:135px;display:block;margin-left:auto;" />
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
 
-                <div class="cta-section">
-                    <p><strong>¡Gracias por elegirnos!</strong></p>
-                    <p>Ante cualquier consulta o inconveniente, no dude en contactarnos. 
-                    Estamos para servirle.</p>
-                </div>
-            </div>
-            
-            <div class="footer">
-                <div class="footer-brand">El Jumillano</div>
-                <p>Sistema de Gestión de Entregas</p>
-                <p>Calidad y confianza en cada servicio</p>
-                <div class="footer-note">
-                    Este es un correo electrónico automático, por favor no responder.<br>
-                    Si necesita asistencia, contacte a nuestro servicio al cliente.
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- BODY -->
+<tr>
+  <td style="padding:24px 28px 12px 28px;font-family:'Montserrat',Arial,sans-serif;">
+
+    <!-- Greeting -->
+    <p style="margin:0 0 4px 0;font-size:15px;color:#333333;font-family:'Montserrat',Arial,sans-serif;">Estimado/a,</p>
+    <p style="margin:0 0 20px 0;font-size:15px;color:#555555;line-height:1.6;font-family:'Montserrat',Arial,sans-serif;">%s</p>
+
+    <!-- Description card -->
+    <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
+      <tr>
+        <td bgcolor="#8DC63F" style="padding:10px 16px;border-radius:4px 4px 0 0;">
+          <p style="margin:0;color:#ffffff;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;font-family:'Montserrat',Arial,sans-serif;">%s</p>
+        </td>
+      </tr>
+      <tr>
+        <td bgcolor="#F5F5F5" style="padding:14px 16px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 4px 4px;">
+          <table width="100%%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="padding:4px 0;font-size:13px;color:#666666;width:130px;font-family:'Montserrat',Arial,sans-serif;" nowrap="nowrap">Orden de Trabajo:</td>
+              <td style="padding:4px 0;font-size:13px;color:#1B5EA6;font-weight:bold;font-family:'Montserrat',Arial,sans-serif;">%s</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;font-size:13px;color:#666666;font-family:'Montserrat',Arial,sans-serif;" nowrap="nowrap">Direcci&oacute;n:</td>
+              <td style="padding:4px 0;font-size:13px;color:#333333;font-family:'Montserrat',Arial,sans-serif;">%s</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;font-size:13px;color:#666666;font-family:'Montserrat',Arial,sans-serif;" nowrap="nowrap">Fecha:</td>
+              <td style="padding:4px 0;font-size:13px;color:#333333;font-family:'Montserrat',Arial,sans-serif;">%s</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;font-size:13px;color:#666666;font-family:'Montserrat',Arial,sans-serif;" nowrap="nowrap">Dispensers:</td>
+              <td style="padding:4px 0;font-size:13px;color:#333333;font-weight:bold;font-family:'Montserrat',Arial,sans-serif;">%d unidades</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 16px 0;font-size:14px;color:#555555;font-family:'Montserrat',Arial,sans-serif;">Nuestro equipo t&eacute;cnico ya verific&oacute; el correcto funcionamiento de todos los equipos.</p>
+
+    <!-- Dispensers table -->
+    <p style="margin:0 0 8px 0;font-size:14px;font-weight:bold;color:#1B5EA6;font-family:'Montserrat',Arial,sans-serif;">%s</p>
+    <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:20px;">
+      <tr>
+        <th bgcolor="#1B5EA6" style="padding:10px 14px;color:#ffffff;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;text-align:center;width:70px;font-family:'Montserrat',Arial,sans-serif;">&#205;TEM</th>
+        <th bgcolor="#1B5EA6" style="padding:10px 14px;color:#ffffff;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;text-align:left;font-family:'Montserrat',Arial,sans-serif;">N&Uacute;MERO DE SERIE</th>
+      </tr>
+      %s
+    </table>
+
+    <!-- PDF notice -->
+    <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+      <tr>
+        <td bgcolor="#E3F2FD" style="padding:14px 16px;border-left:4px solid #0099CC;border-radius:0 4px 4px 0;">
+          <p style="margin:0;font-size:14px;color:#1B5EA6;line-height:1.6;font-family:'Montserrat',Arial,sans-serif;">
+            <span style="background-color:#FFA500;color:#ffffff;font-weight:bold;padding:2px 7px;border-radius:3px;font-size:13px;font-family:'Montserrat',Arial,sans-serif;">Documento adjunto:</span>&nbsp;%s
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Thank you + CTA -->
+    <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+      <tr>
+        <td bgcolor="#E3F2FD" style="padding:20px 24px;border:1px solid #0099CC;border-radius:6px;text-align:center;">
+          <p style="margin:0 0 8px 0;font-size:16px;font-weight:bold;color:#1B5EA6;font-family:'Montserrat',Arial,sans-serif;">&#161;Gracias por ser parte de la familia IVESS!</p>
+          <p style="margin:0 0 10px 0;font-size:14px;color:#555555;font-family:'Montserrat',Arial,sans-serif;">Agend&aacute; nuestro Whatsapp para realizar tus gestiones</p>
+          <a href="https://wa.me/5491122753000" style="color:#0099CC;font-size:15px;font-weight:bold;text-decoration:underline;font-family:'Montserrat',Arial,sans-serif;">112275-3000</a>
+        </td>
+      </tr>
+    </table>
+
+  </td>
+</tr>
+
+<!-- FOOTER -->
+<tr>
+  <td bgcolor="#1B5EA6" style="padding:20px 28px;text-align:center;">
+    <p style="margin:0 0 4px 0;color:#ffffff;font-size:15px;font-weight:bold;font-family:'Montserrat',Arial,sans-serif;">El Jumillano</p>
+    <p style="margin:0 0 10px 0;color:rgba(255,255,255,0.78);font-size:12px;font-family:'Montserrat',Arial,sans-serif;">Calidad, comodidad y puntualidad en cada entrega</p>
+    <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-family:'Montserrat',Arial,sans-serif;">Este es un correo electr&oacute;nico autom&aacute;tico, por favor no responder.</p>
+  </td>
+</tr>
+
+</table>
+</td></tr>
+</table>
 </body>
-</html>
-	`,
-		texts.title,
-		texts.title,
+</html>`,
+		montserratFontCSS,
 		texts.subtitle,
-		delivery.Name,
+		texts.title,
+		texts.title, texts.subtitle,
+		logoSrc,
 		message,
 		texts.cardTitle,
 		orderNumber,
