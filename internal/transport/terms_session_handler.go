@@ -77,7 +77,7 @@ func (h *TermsSessionHandler) CreateContactCenterSession(c *gin.Context) {
 		Str("source", "contact_center").
 		Msg(constants.LogCreatingTermsSession)
 
-	response, err := h.service.CreateSession(ctx, req.SessionID, "", h.appBaseURL, h.termsTTL, 0)
+	response, err := h.service.CreateSession(ctx, req.SessionID, req.ConversationID, h.appBaseURL, h.termsTTL, req.Delivery)
 	if err != nil {
 		log.Error().Err(err).Str("session_id", req.SessionID).Msg(constants.LogErrorCreatingSession)
 		c.JSON(http.StatusInternalServerError, gin.H{
