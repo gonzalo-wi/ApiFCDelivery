@@ -74,6 +74,8 @@ func (h *TermsSessionHandler) CreateContactCenterSession(c *gin.Context) {
 
 	log.Info().
 		Str("session_id", req.SessionID).
+		Str("conversation_id", req.ConversationID).
+		Int("delivery", req.Delivery).
 		Str("source", "contact_center").
 		Msg(constants.LogCreatingTermsSession)
 
