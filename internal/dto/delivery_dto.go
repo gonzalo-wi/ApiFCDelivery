@@ -19,6 +19,7 @@ type DeliveryResponse struct {
 	EntregadoPor   models.EntregadoPor     `json:"entregado_por"`
 	ConversationID *string                 `json:"conversation_id,omitempty"`
 	FechaAccion    string                  `json:"fecha_accion"`
+	FechaCreacion  string                  `json:"fecha_creacion"`
 }
 
 func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
@@ -42,6 +43,7 @@ func ToDeliveryResponse(delivery *models.Delivery) DeliveryResponse {
 		EntregadoPor:   delivery.EntregadoPor,
 		ConversationID: delivery.ConversationID,
 		FechaAccion:    delivery.FechaAccion.Format("2006-01-02T15:04:05Z07:00"),
+		FechaCreacion:  delivery.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
 
