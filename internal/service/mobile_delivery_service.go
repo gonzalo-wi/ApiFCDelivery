@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"GoFrioCalor/internal/dto"
+	"GoFrioCalor/internal/metrics"
 	"GoFrioCalor/internal/models"
 	"GoFrioCalor/internal/store"
 
@@ -325,10 +326,12 @@ func (s *mobileDeliveryService) sendCompletionEmailWithPDF(ctx context.Context, 
 	)
 
 	if err != nil {
+		metrics.EmailSent("completion", false)
 		localLog.Error().Err(err).Msg("Error sending completion email")
 		return
 	}
 
+	metrics.EmailSent("completion", true)
 	localLog.Info().Msg("Completion email sent successfully with PDF attachment")
 }
 

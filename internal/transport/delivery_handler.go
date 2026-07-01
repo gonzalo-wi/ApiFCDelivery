@@ -28,6 +28,7 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 	ctx := c.Request.Context()
 	nroCta := c.Query("nro_cta")
 	fechaStr := c.Query("fecha_accion")
+	fechaCreacionStr := c.Query("fecha_creacion")
 	estadoStr := c.Query("estado")
 
 	// Paginación
@@ -57,7 +58,7 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 	var total int64
 	var err error
 
-	if nroCta != "" || fechaStr != "" || estado != nil {
+	if nroCta != "" || fechaStr != "" || fechaCreacionStr != "" || estado != nil {
 		var fechaAccion *time.Time
 		if fechaStr != "" {
 			parsed, parseErr := time.Parse("2006-01-02", fechaStr)
@@ -67,12 +68,21 @@ func (h *DeliveryHandler) GetAllDeliveries(c *gin.Context) {
 			}
 			fechaAccion = &parsed
 		}
-		total, err = h.service.CountByFilters(ctx, nroCta, fechaAccion, estado)
+		var fechaCreacion *time.Time
+		if fechaCreacionStr != "" {
+			parsed, parseErr := time.Parse("2006-01-02", fechaCreacionStr)
+			if parseErr != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha de creación inválida. Formato esperado: YYYY-MM-DD"})
+				return
+			}
+			fechaCreacion = &parsed
+		}
+		total, err = h.service.CountByFilters(ctx, nroCta, fechaAccion, fechaCreacion, estado)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		deliveries, err = h.service.FindByFilters(ctx, nroCta, fechaAccion, estado, pageSize, offset)
+		deliveries, err = h.service.FindByFilters(ctx, nroCta, fechaAccion, fechaCreacion, estado, pageSize, offset)
 	} else {
 		total, err = h.service.CountAll(ctx)
 		if err != nil {
@@ -322,7 +332,7 @@ func (h *DeliveryHandler) GetDeliveriesByNroCta(c *gin.Context) {
 		fechaAccion = &parsed
 	}
 
-	deliveries, err := h.service.FindByFilters(ctx, nroCta, fechaAccion, nil, -1, 0)
+	deliveries, err := h.service.FindByFilters(ctx, nroCta, fechaAccion, nil, nil, -1, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

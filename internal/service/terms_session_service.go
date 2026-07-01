@@ -3,6 +3,7 @@ package service
 import (
 	"GoFrioCalor/internal/constants"
 	"GoFrioCalor/internal/dto"
+	"GoFrioCalor/internal/metrics"
 	"GoFrioCalor/internal/models"
 	"GoFrioCalor/internal/store"
 	"context"
@@ -197,6 +198,7 @@ func (s *termsSessionService) AcceptTerms(ctx context.Context, token, ip, userAg
 	if err := s.store.Update(ctx, session); err != nil {
 		return nil, fmt.Errorf(constants.ErrUpdatingSession, err)
 	}
+	metrics.TermsAction("accepted", session.Company)
 	log.Info().
 		Str("token", token).
 		Str("session_id", session.SessionID).
@@ -239,6 +241,7 @@ func (s *termsSessionService) RejectTerms(ctx context.Context, token, ip, userAg
 	if err := s.store.Update(ctx, session); err != nil {
 		return nil, fmt.Errorf(constants.ErrUpdatingSession, err)
 	}
+	metrics.TermsAction("rejected", session.Company)
 	log.Info().
 		Str("token", token).
 		Str("session_id", session.SessionID).

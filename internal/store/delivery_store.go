@@ -2,6 +2,7 @@ package store
 
 import (
 	"GoFrioCalor/internal/constants"
+	"GoFrioCalor/internal/metrics"
 	"GoFrioCalor/internal/models"
 	"context"
 	"fmt"
@@ -16,8 +17,8 @@ type DeliveryStore interface {
 	FindByID(ctx context.Context, id int) (*models.Delivery, error)
 	FindByConversationID(ctx context.Context, conversationID string) (*models.Delivery, error)
 	FindByTokenAndFilters(ctx context.Context, token, nroCta, fechaAccion string, estado models.EstadoEntrega) (*models.Delivery, error)
-	FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega, limit, offset int) ([]models.Delivery, error)
-	CountByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega) (int64, error)
+	FindByFilters(ctx context.Context, nroCta string, fechaAccion, fechaCreacion *time.Time, estado *models.EstadoEntrega, limit, offset int) ([]models.Delivery, error)
+	CountByFilters(ctx context.Context, nroCta string, fechaAccion, fechaCreacion *time.Time, estado *models.EstadoEntrega) (int64, error)
 	FindByRto(ctx context.Context, nroRto string, fechaAccion *time.Time) ([]models.Delivery, error)
 	FindByFechaAccion(ctx context.Context, fecha string) ([]models.Delivery, error)
 	FindByFechaAndNroCta(ctx context.Context, fechaAccion, nroCta string) (*models.Delivery, error)
@@ -100,7 +101,7 @@ func (s *deliveryStore) FindByTokenAndFilters(ctx context.Context, token, nroCta
 	return &delivery, nil
 }
 
-func (s *deliveryStore) buildFiltersQuery(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega) *gorm.DB {
+func (s *deliveryStore) buildFiltersQuery(ctx context.Context, nroCta string, fechaAccion, fechaCreacion *time.Time, estado *models.EstadoEntrega) *gorm.DB {
 	query := s.db.WithContext(ctx).Model(&models.Delivery{})
 	if nroCta != "" {
 		query = query.Where("nro_cta = ?", nroCta)
@@ -110,15 +111,20 @@ func (s *deliveryStore) buildFiltersQuery(ctx context.Context, nroCta string, fe
 		endOfDay := startOfDay.Add(24 * time.Hour)
 		query = query.Where("fecha_accion >= ? AND fecha_accion < ?", startOfDay, endOfDay)
 	}
+	if fechaCreacion != nil {
+		startOfDay := time.Date(fechaCreacion.Year(), fechaCreacion.Month(), fechaCreacion.Day(), 0, 0, 0, 0, fechaCreacion.Location())
+		endOfDay := startOfDay.Add(24 * time.Hour)
+		query = query.Where("created_at >= ? AND created_at < ?", startOfDay, endOfDay)
+	}
 	if estado != nil {
 		query = query.Where("estado = ?", *estado)
 	}
 	return query
 }
 
-func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega, limit, offset int) ([]models.Delivery, error) {
+func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaAccion, fechaCreacion *time.Time, estado *models.EstadoEntrega, limit, offset int) ([]models.Delivery, error) {
 	var deliveries []models.Delivery
-	query := s.buildFiltersQuery(ctx, nroCta, fechaAccion, estado).
+	query := s.buildFiltersQuery(ctx, nroCta, fechaAccion, fechaCreacion, estado).
 		Preload("ItemDispensers").
 		Order("id DESC").
 		Offset(offset).Limit(limit)
@@ -128,9 +134,9 @@ func (s *deliveryStore) FindByFilters(ctx context.Context, nroCta string, fechaA
 	return deliveries, nil
 }
 
-func (s *deliveryStore) CountByFilters(ctx context.Context, nroCta string, fechaAccion *time.Time, estado *models.EstadoEntrega) (int64, error) {
+func (s *deliveryStore) CountByFilters(ctx context.Context, nroCta string, fechaAccion, fechaCreacion *time.Time, estado *models.EstadoEntrega) (int64, error) {
 	var count int64
-	if err := s.buildFiltersQuery(ctx, nroCta, fechaAccion, estado).Count(&count).Error; err != nil {
+	if err := s.buildFiltersQuery(ctx, nroCta, fechaAccion, fechaCreacion, estado).Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("error contando deliveries con filtros: %w", err)
 	}
 	return count, nil
@@ -183,6 +189,7 @@ func (s *deliveryStore) Create(ctx context.Context, delivery *models.Delivery) e
 	if err := s.db.WithContext(ctx).Create(delivery).Error; err != nil {
 		return fmt.Errorf(constants.ErrCreateDelivery, err)
 	}
+	metrics.DeliveryCreated(string(delivery.TipoEntrega))
 	return nil
 }
 
