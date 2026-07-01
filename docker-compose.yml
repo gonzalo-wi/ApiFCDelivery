@@ -6,6 +6,11 @@ services:
       - .env
     environment:
       PORT: "8080"
+    # Puerto directo por instancia para que Prometheus (host de monitoreo)
+    # scrapee /metrics sin pasar por el balanceo de nginx.
+    # IMPORTANTE: firewallear 9101/9102 para que solo los alcance 192.168.0.55.
+    ports:
+      - "9101:8080"
     networks:
       - gofrocalor-network
     healthcheck:
@@ -22,6 +27,8 @@ services:
       - .env
     environment:
       PORT: "8080"
+    ports:
+      - "9102:8080"
     networks:
       - gofrocalor-network
     healthcheck:
